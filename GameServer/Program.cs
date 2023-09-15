@@ -9,7 +9,7 @@ namespace GameServer
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            builder.WebHost.UseUrls("http://localhost:1337");
+            builder.WebHost.UseUrls("http://localhost:13371");
             var app = builder.Build();
 
             app.UseWebSockets();
