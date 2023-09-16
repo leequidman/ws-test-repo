@@ -1,6 +1,7 @@
 ﻿using System.Net.WebSockets;
-using Common.Models.Response.Login;
-using GameServer.Client;
+using Common.Models.Requests.Abstract;
+using Common.Models.Requests.Login;
+using Common.Services;
 using GameServer.Services;
 
 namespace GameServer.Handlers
@@ -14,30 +15,30 @@ namespace GameServer.Handlers
     {
         private readonly IPlayersService _playersService;
         private readonly IConnectionService _connectionService;  
-        private readonly ISender _sender;
+        private readonly IEventSender _eventSender;
 
-        public LoginHandler(IPlayersService playersService, IConnectionService connectionService, ISender sender)
+        public LoginHandler(IPlayersService playersService, IConnectionService connectionService, IEventSender eventSender)
         {
             _playersService = playersService;
             _connectionService = connectionService;
-            _sender = sender;
+            _eventSender = eventSender;
         }
 
         public async Task Handle(Guid deviceId, WebSocket ws)
         {
             var playerId = await _playersService.GetOrAddPlayerId(deviceId);
-            LoginResponse loginResponse;
-            if (_connectionService.IsOnline(playerId))
-            {
+
+            IEvent loginEvent;
+            if (_connectionService.IsOnline(playerId)) {
                 // mb go with silent success instead?
-                loginResponse = new($"Player {playerId} is already online");
+                loginEvent = new LoginFailedEvent(new($"Player {playerId} is already online"));
             }
             else
             {
                 _connectionService.SetOnline(playerId, ws);
-                loginResponse = new(new LoginResponseResult(playerId));
+                loginEvent = new LoginSuccessfulEvent(new(playerId));
             }
-            await _sender.Send(ws, loginResponse);
+            await _eventSender.Send(ws, loginEvent);
         }
     }
 }

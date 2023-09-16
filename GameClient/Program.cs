@@ -66,10 +66,7 @@ namespace GameClient
                         {
                             case "l":
                             {
-                                var loginRequest = new LoginRequest(new()
-                                {
-                                    DeviceId = Guid.NewGuid()
-                                });
+                                var loginRequest = new InitLoginEvent(new(Guid.NewGuid()));
 
                                 var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
@@ -77,24 +74,18 @@ namespace GameClient
                             }
                             case "ll":
                             {
-                                var loginRequest = new LoginRequest(new()
-                                {
-                                    DeviceId = mdi
-                                });
+                                var loginRequest = new InitLoginEvent(new(mdi));
 
                                 var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
-
-                                }
+                            }
                             case "u":
                             {
                                 var rnd = new Random();
-                                var request = new UpdateResourceRequest(new()
-                                {
-                                    Amount = rnd.Next(1, 10),
-                                    ResourceType = Common.Models.Requests.UpdateResources.ResourceType.Coins
-                                });
+                                var request = new UpdateResourceEvent(new(
+                                    Common.Models.Requests.UpdateResources.ResourceType.Coins,
+                                    rnd.Next(1, 10)));
 
                                 var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
@@ -104,16 +95,11 @@ namespace GameClient
                             {
                                 continueLoop = false;
                                 break;
-
                             }
                             default:
                                 Log.Warning($"Unknown command: '{message}'");
                                 break;
-
                         }
-
-
-
                     }
                 });
 
