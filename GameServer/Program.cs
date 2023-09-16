@@ -14,6 +14,7 @@ using Serilog;
 
 namespace GameServer
 {
+    public delegate IEventHandler? ServiceResolver(EventType key);
 
     public class Program
     {
@@ -30,12 +31,22 @@ namespace GameServer
                 builder.Host.UseSerilog();
 
                 builder.Services.AddSingleton<Serilog.ILogger>(log);
-                builder.Services.AddSingleton<ILoginHandler, LoginHandler>();
+                // builder.Services.AddSingleton<IInitLoginHandler, InitLoginHandler>();
                 builder.Services.AddSingleton<IPlayersService, PlayersService>();
                 builder.Services.AddSingleton<IConnectionService, ConnectionService>();
                 builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
                 builder.Services.AddSingleton<IEventSender, EventSender>();
+                builder.Services.AddSingleton<IBaseMessageHandler, BaseMessageHandler>();
+                builder.Services.AddSingleton<IEventHandlerProvider, EventHandlerProvider>();
+                
+                var handlerTypes = typeof(Program).Assembly.GetTypes()
+                    .Where(type => typeof(IEventHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
+               
 
+                foreach (var rule in handlerTypes)
+                {
+                    builder.Services.Add(new(typeof(IEventHandler), rule, ServiceLifetime.Singleton));
+                }
 
 
                 var app = builder.Build();
@@ -76,19 +87,24 @@ namespace GameServer
                                         }
 
                                         // var request = JsonSerializer.Deserialize<Request>(message);
+                                        var h = app.Services.GetService<IBaseMessageHandler>();
+
                                         switch (request.EventType)
                                         {
                                             case EventType.InitLogin:
-                                                var h = app.Services.GetService<ILoginHandler>();
-                                                
-                                                var data = request.EventData as InitLoginEventData;
 
-                                                await h.Handle(data.DeviceId, ws);
+                                                await h.Handle(result, ws, buffer);
+                                                
+                                                // var data = request.EventData as InitLoginEventData;
+
+                                                // await h.Handle(data, ws);
 
                                                 // await HandleLogin(ws, request.EventData);
                                                 break;
                                             case EventType.UpdateResources:
-                                                await HandleUpdateResources(ws, request.EventData);
+                                                // var h = app.Services.GetService<IBaseMessageHandler>();
+
+                                                await h.Handle(result, ws, buffer);
                                                 break;
                                             case EventType.SendGift:
                                                 break;
