@@ -9,19 +9,23 @@ namespace GameServer
     {
         public static async Task Main(string[] args)
         {
-            ConfigureLogger();
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateLogger();
 
-            var builder = WebApplication.CreateBuilder(args);
-            builder.WebHost.UseUrls("http://localhost:13371");
-            builder.Host.UseSerilog();
+            try
+            {
+                var builder = WebApplication.CreateBuilder(args);
+                builder.WebHost.UseUrls("http://localhost:13371");
+                builder.Host.UseSerilog();
 
-            var app = builder.Build();
+                var app = builder.Build();
 
-            app.UseWebSockets();
+                app.UseWebSockets();
 
-            var connections = new List<WebSocket>();
+                var connections = new List<WebSocket>();
 
-            app.Map("/ws", async context =>
+                app.Map("/ws", async context =>
                 {
                     if (context.WebSockets.IsWebSocketRequest)
                     {
@@ -82,15 +86,17 @@ namespace GameServer
                 });
 
 
-            await app.RunAsync();
-
-
-        }
-        private static void ConfigureLogger()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .CreateLogger();
+                await app.RunAsync();
+            }
+            catch (Exception e)
+            {
+                Log.Fatal(e, "Unexpected error");
+                throw;
+            }
+            finally
+            {
+                await Log.CloseAndFlushAsync();
+            }
         }
     }
 
