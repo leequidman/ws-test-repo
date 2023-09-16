@@ -1,7 +1,12 @@
 ﻿using System.Net.WebSockets;
+using System.Security.AccessControl;
 using System.Text;
 using Serilog;
 using Serilog;
+using System.ComponentModel;
+using System.Text.Json;
+using Common.Models.Requests.Login;
+using Common.Models.Requests.UpdateResources;
 
 namespace GameClient
 {
@@ -16,22 +21,20 @@ namespace GameClient
 
             try
             {
-                Console.WriteLine("Hello, World!");
                 Log.Information("Hello, world!");
 
 
                 var ws = new ClientWebSocket();
-                string name;
                 while (true)
                 {
-                    Console.Write("Input name: ");
-                    name = Console.ReadLine();
+                    Console.Write("Press any key to start");
+                    Console.ReadKey();
                     break;
                 }
 
-                Console.WriteLine("Start connecting...");
-                await ws.ConnectAsync(new Uri($"ws://localhost:13371/ws?name={name}"), CancellationToken.None);
-                Console.WriteLine("Connected");
+                Log.Information("Start connecting...");
+                await ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
+                Log.Information("Connected");
 
 
                 var receiveTask = Task.Run(async () =>
@@ -39,7 +42,7 @@ namespace GameClient
                     var buffer = new byte[1024 * 4];
                     while (true)
                     {
-                        var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                        var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
 
                         if (result.MessageType == WebSocketMessageType.Close)
                         {
@@ -47,7 +50,7 @@ namespace GameClient
                         }
 
                         var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        Console.WriteLine(message);
+                        Log.Information(message);
                     }
                 });
 
@@ -57,19 +60,46 @@ namespace GameClient
                     {
                         var message = Console.ReadLine();
 
-                        if (message == "exit")
+                        switch (message)
+                        {
+                            case "l":
+                            {
+                                var loginRequest = new LoginRequest(new()
+                                {
+                                    DeviceId = Guid.NewGuid()
+                                });
+
+                                var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
+                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                                break;
+                            }
+                            case "u":
+                            {
+                                var rnd = new Random();
+                                var request = new UpdateResourceRequest(new()
+                                {
+                                    Amount = rnd.Next(1, 10),
+                                    ResourceType = Common.Models.Requests.UpdateResources.ResourceType.Coins
+                                });
+
+                                var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
+                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                                break;
+                            }
+                        }
+
+                        if (message == "e")
                         {
                             break;
                         }
 
-                        var bytes = Encoding.UTF8.GetBytes(message);
-                        await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                        Log.Warning($"Unknown command: '{message}'");
                     }
                 });
 
                 await Task.WhenAny(sendTask, receiveTask);
 
-                Console.WriteLine("After when any");
+                Log.Information("After when any");
 
 
                 if (ws.State != WebSocketState.Closed)
@@ -88,36 +118,6 @@ namespace GameClient
             {
                 await Log.CloseAndFlushAsync();
             }
-
-
-
-
-
-
-
-            // var ws = new ClientWebSocket();
-            // Console.WriteLine("Start connecting...");
-            // await ws.ConnectAsync(new Uri("ws://localhost:13371/ws"), CancellationToken.None);
-            // Console.WriteLine("Connected");
-            //
-            // var receiveTask = Task.Run(async () =>
-            // {
-            //     var buffer = new byte[1024];
-            //     while (true)
-            //     {
-            //         var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            //         if (result.MessageType == WebSocketMessageType.Close)
-            //         {
-            //             Console.WriteLine("Received close message");
-            //             break;
-            //         }
-            //
-            //         var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-            //         Console.WriteLine("Received: " + message);
-            //     }
-            // });
-            //
-            // await receiveTask;
         }
     }
 }
