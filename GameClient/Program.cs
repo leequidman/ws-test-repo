@@ -1,5 +1,7 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
+using Serilog;
+using Serilog;
 
 namespace GameClient
 {
@@ -7,68 +9,85 @@ namespace GameClient
     {
         static async Task Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .WriteTo.Console()
+                .CreateLogger();
 
-
-            var ws = new ClientWebSocket();
-            string name;
-            while (true)
+            try
             {
-                Console.Write("Input name: ");
-                name = Console.ReadLine();
-                break;
-            }
-
-            Console.WriteLine("Start connecting...");
-            await ws.ConnectAsync(new Uri($"ws://localhost:13371/ws?name={name}"), CancellationToken.None);
-            Console.WriteLine("Connected");
+                Console.WriteLine("Hello, World!");
+                Log.Information("Hello, world!");
 
 
-            var receiveTask = Task.Run(async () =>
-            {
-                var buffer = new byte[1024 * 4];
+                var ws = new ClientWebSocket();
+                string name;
                 while (true)
                 {
-                    var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        break;
-                    }
-
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    Console.WriteLine(message);
+                    Console.Write("Input name: ");
+                    name = Console.ReadLine();
+                    break;
                 }
-            });
 
-            var sendTask = Task.Run(async () =>
-            {
-                while (true)
+                Console.WriteLine("Start connecting...");
+                await ws.ConnectAsync(new Uri($"ws://localhost:13371/ws?name={name}"), CancellationToken.None);
+                Console.WriteLine("Connected");
+
+
+                var receiveTask = Task.Run(async () =>
                 {
-                    var message = Console.ReadLine();
-
-                    if (message == "exit")
+                    var buffer = new byte[1024 * 4];
+                    while (true)
                     {
-                        break;
+                        var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            break;
+                        }
+
+                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        Console.WriteLine(message);
                     }
+                });
 
-                    var bytes = Encoding.UTF8.GetBytes(message);
-                    await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                var sendTask = Task.Run(async () =>
+                {
+                    while (true)
+                    {
+                        var message = Console.ReadLine();
+
+                        if (message == "exit")
+                        {
+                            break;
+                        }
+
+                        var bytes = Encoding.UTF8.GetBytes(message);
+                        await ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                    }
+                });
+
+                await Task.WhenAny(sendTask, receiveTask);
+
+                Console.WriteLine("After when any");
+
+
+                if (ws.State != WebSocketState.Closed)
+                {
+                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                 }
-            });
-
-            await Task.WhenAny(sendTask, receiveTask);
-
-            Console.WriteLine("After when any");
 
 
-            if (ws.State != WebSocketState.Closed)
-            {
-                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                await Task.WhenAll(sendTask, receiveTask);
             }
-
-
-            await Task.WhenAll(sendTask, receiveTask);
+            catch (Exception e)
+            {
+                Log.Error(e, "Unexpected error");
+            }
+            finally
+            {
+                await Log.CloseAndFlushAsync();
+            }
 
 
 
