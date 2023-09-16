@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+using System.Net.WebSockets;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
 using Common.Services;
