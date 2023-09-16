@@ -1,12 +1,6 @@
 using System.Net;
-using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json.Nodes;
-using Common.Models;
-using Common.Models.Requests.Abstract;
-using Common.Models.Requests.Login;
-using Common.Models.Requests.UpdateResources;
-using Common.Services;
+using Common.EventHandling;
+using Common.Transport;
 using GameServer.Handlers;
 using GameServer.Repositories;
 using GameServer.Services;
@@ -14,8 +8,6 @@ using Serilog;
 
 namespace GameServer
 {
-    public delegate IEventHandler? ServiceResolver(EventType key);
-
     public class Program
     {
         public static async Task Main(string[] args)
@@ -27,21 +19,20 @@ namespace GameServer
             try
             {
                 var builder = WebApplication.CreateBuilder(args);
-                builder.WebHost.UseUrls("http://localhost:13371");
+                builder.WebHost.UseUrls("http://localhost:13371"); // todo: to appsettings/cmd params/constants
                 builder.Host.UseSerilog();
 
-                builder.Services.AddSingleton<Serilog.ILogger>(log);
-                // builder.Services.AddSingleton<IInitLoginHandler, InitLoginHandler>();
+                builder.Services.AddSingleton(log);
                 builder.Services.AddSingleton<IPlayersService, PlayersService>();
                 builder.Services.AddSingleton<IConnectionService, ConnectionService>();
                 builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
-                builder.Services.AddSingleton<IEventSender, EventSender>();
+                builder.Services.AddSingleton<IWebSocketHandler, WebSocketHandler>();
                 builder.Services.AddSingleton<IBaseMessageHandler, BaseMessageHandler>();
                 builder.Services.AddSingleton<IEventHandlerProvider, EventHandlerProvider>();
-                
+
                 var handlerTypes = typeof(Program).Assembly.GetTypes()
                     .Where(type => typeof(IEventHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
-               
+
 
                 foreach (var rule in handlerTypes)
                 {
@@ -53,7 +44,6 @@ namespace GameServer
 
                 app.UseWebSockets();
 
-                var connections = new List<WebSocket>();
 
                 app.Map("/ws",
                     async context =>
@@ -61,96 +51,9 @@ namespace GameServer
                         if (context.WebSockets.IsWebSocketRequest)
                         {
                             using var ws = await context.WebSockets.AcceptWebSocketAsync();
-                            connections.Add(ws);
 
-                            await ReceiveMessage(ws,
-                                async (result, buffer) =>
-                                {
-                                    if (result.MessageType == WebSocketMessageType.Text)
-                                    {
-                                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-
-                                        IEvent request = null;
-                                        try
-                                        {
-                                            request = Parse(message);
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            var bytes = Encoding.UTF8.GetBytes(e.Message);
-                                            if (ws.State == WebSocketState.Open)
-                                            {
-                                                var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-                                                await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-                                                return;
-                                            }
-                                        }
-
-                                        // var request = JsonSerializer.Deserialize<Request>(message);
-                                        var h = app.Services.GetService<IBaseMessageHandler>();
-
-                                        switch (request.EventType)
-                                        {
-                                            case EventType.InitLogin:
-
-                                                await h.Handle(result, ws, buffer);
-                                                
-                                                // var data = request.EventData as InitLoginEventData;
-
-                                                // await h.Handle(data, ws);
-
-                                                // await HandleLogin(ws, request.EventData);
-                                                break;
-                                            case EventType.UpdateResources:
-                                                // var h = app.Services.GetService<IBaseMessageHandler>();
-
-                                                await h.Handle(result, ws, buffer);
-                                                break;
-                                            case EventType.SendGift:
-                                                break;
-                                            default:
-                                                throw new ArgumentOutOfRangeException();
-                                        }
-
-
-                                        // handlerFactory.TryGetHandler(request.RequestType, out var handler);
-                                        // var res = await handler.Handle(request.RequestData);
-
-
-                                        // await Broadcast(curName + ": " + message);
-                                    }
-                                    else if (result.MessageType == WebSocketMessageType.Close || ws.State == WebSocketState.Aborted)
-                                    {
-                                        connections.Remove(ws);
-                                        // await Broadcast($"{curName} left the room");
-                                        // await Broadcast($"{connections.Count} users connected");
-                                        await ws.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
-                                    }
-                                });
-
-
-                            async Task ReceiveMessage(WebSocket socket, Action<WebSocketReceiveResult, byte[]> handleMessage)
-                            {
-                                var buffer = new byte[1024 * 4];
-                                while (socket.State == WebSocketState.Open)
-                                {
-                                    var result = await socket.ReceiveAsync(new(buffer), CancellationToken.None);
-                                    handleMessage(result, buffer);
-                                }
-                            }
-
-                            async Task Broadcast(string message)
-                            {
-                                var bytes = Encoding.UTF8.GetBytes(message);
-                                foreach (var socket in connections)
-                                {
-                                    if (socket.State == WebSocketState.Open)
-                                    {
-                                        var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-                                        await socket.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-                                    }
-                                }
-                            }
+                            var h = app.Services.GetService<IWebSocketHandler>();
+                            await h.ReceiveMessage(ws);
 
                         }
                         else
@@ -172,82 +75,5 @@ namespace GameServer
                 await Log.CloseAndFlushAsync();
             }
         }
-
-        private static IEvent Parse(string jsonString)
-        {
-            var jsonObj = JsonNode.Parse(jsonString)?.AsObject();
-            Enum.TryParse<EventType>(jsonObj["EventType"].ToString(), out var type);
-
-            switch (type)
-            {
-                case EventType.InitLogin:
-                    return new InitLoginEvent(new(Guid.Parse(jsonObj["EventData"]["DeviceId"].ToString())));
-
-                case EventType.UpdateResources:
-                    return new UpdateResourceEvent(new(
-                        Enum.Parse<ResourceType>(jsonObj["EventData"]["ResourceType"].ToString()),
-                        int.Parse(jsonObj["EventData"]["Amount"].ToString())));
-
-                // case EventType.SendGift:
-                //     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private static async Task HandleUpdateResources(WebSocket ws, object eventEventData)
-        {
-            var data = eventEventData as UpdateResourcesEventData;
-            Log.Information($"Handling UPDATE, Updating '{data.Amount}' of '{data.ResourceType}");
-            await Task.Delay(500);
-            Log.Information($"UPDATED");
-            ;
-
-            var bytes = Encoding.UTF8.GetBytes($"Now your '{data.ResourceType}' is  '{data.Amount}'");
-            var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-            await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-        }
-
-        private static async Task HandleLogin(WebSocket ws, object requestRequestData)
-        {
-            
-            var data = requestRequestData as InitLoginEventData;
-            Log.Information($"Handling login, DeviceId: {data.DeviceId}");
-            await Task.Delay(500);
-            Log.Information($"Logged in, DeviceId: {data.DeviceId}");
-
-            var bytes = Encoding.UTF8.GetBytes($"Hi, {data.DeviceId}, you are logged in");
-            var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-            await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-
-        }
     }
-
-
-
-
-
-}//     // //     while (true)
-//     // //     {
-//     // //         var message = "Time now is: " + DateTime.Now.ToString("HH:mm:ss");
-//     // //         var bytes = Encoding.UTF8.GetBytes(message);
-//     // //         var arraySegment = new ArraySegment<byte>(bytes, 0, bytes.Length);
-//     // //         if (ws.State == WebSocketState.Open)
-//     // //         {
-//     // //             Console.WriteLine("Sending this: " + message);
-//     // //             await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
-//     // //         }
-//     // //         else if (ws.State == WebSocketState.Closed || ws.State == WebSocketState.Aborted)
-//     // //         {
-//     // //             Console.WriteLine("Websocket closed. By client?");  
-//     // //             break;
-//     // //         }
-//     // //
-//     // //         await Task.Delay(1000);
-//     // //     }
-//     // // }
-//     // else
-//     // {
-//     //     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-//     // }
-// });
+}

@@ -1,8 +1,9 @@
 using System.Net.WebSockets;
+using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
-using Common.Services;
+using Common.Transport;
 using GameServer.Services;
 using JetBrains.Annotations;
 
@@ -13,15 +14,15 @@ namespace GameServer.Handlers
     {
         private readonly IPlayersService _playersService;
         private readonly IConnectionService _connectionService;
-        private readonly IEventSender _eventSender;
+        private readonly IWebSocketHandler _webSocketHandler;
 
         public EventType EventType => EventType.InitLogin;
 
-        public InitLoginHandler(IPlayersService playersService, IConnectionService connectionService, IEventSender eventSender)
+        public InitLoginHandler(IPlayersService playersService, IConnectionService connectionService, IWebSocketHandler webSocketHandler)
         {
             _playersService = playersService;
             _connectionService = connectionService;
-            _eventSender = eventSender;
+            _webSocketHandler = webSocketHandler;
         }
 
         public async Task Handle(object? eventData, WebSocket ws)
@@ -52,7 +53,7 @@ namespace GameServer.Handlers
                 loginEvent = new LoginSuccessfulEvent(new(playerId));
             }
 
-            await _eventSender.Send(ws, loginEvent);
+            await _webSocketHandler.SendEvent(ws, loginEvent);
         }
     }
 }

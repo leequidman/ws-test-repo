@@ -1,6 +1,12 @@
 ﻿using Common.Models;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace GameServer.Handlers;
+namespace Common.EventHandling;
+
+public interface IEventHandlerProvider
+{
+    IEnumerable<IEventHandler> GetHandlers(EventType eventType);
+}
 
 public class EventHandlerProvider : IEventHandlerProvider
 {

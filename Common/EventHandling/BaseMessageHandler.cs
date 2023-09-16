@@ -1,13 +1,18 @@
 ﻿using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json.Nodes;
+using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
 using Common.Models.Requests.UpdateResources;
-using Common.Models;
-using System.Text.Json.Nodes;
 
-namespace GameServer.Handlers
+namespace Common.EventHandling
 {
+    public interface IBaseMessageHandler
+    {
+        Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer);
+    }
+
     public class BaseMessageHandler : IBaseMessageHandler
     {
         private readonly IEventHandlerProvider _eventHandlerProvider;
@@ -65,13 +70,13 @@ namespace GameServer.Handlers
                             $"Invalid data format for EventType '{evenTypeString}'. " +
                             $"{nameof(UpdateResourcesEventData.ResourceType)} was null." +
                             $"{Environment.NewLine}{jsonString}: {jsonString}");
-                    
+
                     var resourceTypeString = resourceTypeNode.ToString();
                     if (!Enum.TryParse<ResourceType>(resourceTypeString, out var resourceType))
                         throw new ArgumentException(
                             $"Invalid data format for EventType '{evenTypeString}'. " +
                             $"{nameof(UpdateResourcesEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");  
+                            $"{Environment.NewLine}{jsonString}: {jsonString}");
 
                     var amountNode = eventData[nameof(UpdateResourcesEventData.Amount)];
                     if (amountNode == null)
