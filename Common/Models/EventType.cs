@@ -6,10 +6,9 @@ public enum EventType
     LoginSuccessful,
     LoginFailed,
 
-
-
-    UpdateResources,
-
+    InitUpdateResource,     
+    UpdateResourceSuccess,
+    UpdateResourceFailure,
 
 
     SendGift

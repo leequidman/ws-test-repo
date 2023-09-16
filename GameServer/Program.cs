@@ -5,6 +5,7 @@ using GameServer.Handlers;
 using GameServer.Repositories;
 using GameServer.Services;
 using Serilog;
+using ILogger = Serilog.ILogger;
 
 namespace GameServer
 {
@@ -22,22 +23,7 @@ namespace GameServer
                 builder.WebHost.UseUrls("http://localhost:13371"); // todo: to appsettings/cmd params/constants
                 builder.Host.UseSerilog();
 
-                builder.Services.AddSingleton(log);
-                builder.Services.AddSingleton<IPlayersService, PlayersService>();
-                builder.Services.AddSingleton<IConnectionService, ConnectionService>();
-                builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
-                builder.Services.AddSingleton<IWebSocketHandler, WebSocketHandler>();
-                builder.Services.AddSingleton<IBaseMessageHandler, BaseMessageHandler>();
-                builder.Services.AddSingleton<IEventHandlerProvider, EventHandlerProvider>();
-
-                var handlerTypes = typeof(Program).Assembly.GetTypes()
-                    .Where(type => typeof(IEventHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
-
-
-                foreach (var rule in handlerTypes)
-                {
-                    builder.Services.Add(new(typeof(IEventHandler), rule, ServiceLifetime.Singleton));
-                }
+                RegisterDependencies(builder, log);
 
 
                 var app = builder.Build();
@@ -52,8 +38,8 @@ namespace GameServer
                         {
                             using var ws = await context.WebSockets.AcceptWebSocketAsync();
 
-                            var h = app.Services.GetService<IWebSocketHandler>();
-                            await h.ReceiveMessage(ws);
+                            var webSocketHandler = app.Services.GetService<IWebSocketHandler>();
+                            await webSocketHandler!.ReceiveMessage(ws);
 
                         }
                         else
@@ -74,6 +60,23 @@ namespace GameServer
             {
                 await Log.CloseAndFlushAsync();
             }
+        }
+
+        private static void RegisterDependencies(WebApplicationBuilder builder, ILogger log)
+        {
+            builder.Services.AddSingleton(log);
+            builder.Services.AddSingleton<IPlayersService, PlayersService>();
+            builder.Services.AddSingleton<IConnectionService, ConnectionService>();
+            builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
+            builder.Services.AddSingleton<IWebSocketHandler, WebSocketHandler>();
+            builder.Services.AddSingleton<IBaseMessageHandler, BaseMessageHandler>();
+            builder.Services.AddSingleton<IEventHandlerProvider, EventHandlerProvider>();
+
+            var handlerTypes = typeof(Program).Assembly.GetTypes()
+                .Where(type => typeof(IEventHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
+
+            foreach (var rule in handlerTypes) 
+                builder.Services.Add(new(typeof(IEventHandler), rule, ServiceLifetime.Singleton));
         }
     }
 }

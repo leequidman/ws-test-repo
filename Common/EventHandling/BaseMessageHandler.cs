@@ -59,40 +59,55 @@ namespace Common.EventHandling
                                                     $"{Environment.NewLine}{jsonString}: {jsonString}");
                     return new InitLoginEvent(new(Guid.Parse(node.ToString())));
 
-                case EventType.UpdateResources:
+                case EventType.InitUpdateResource:
                     var eventData = jsonObj[nameof(IEvent.EventData)];
                     if (eventData == null)
                         throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
                                                     $"{Environment.NewLine}{jsonString}: {jsonString}");
-                    var resourceTypeNode = eventData[nameof(UpdateResourcesEventData.ResourceType)];
+
+                    var playerIdNode = eventData[nameof(InitUpdateResourceEventData.PlayerId)];
+                    if (playerIdNode == null)
+                        throw new ArgumentException(
+                            $"Invalid data format for EventType '{evenTypeString}'. " +
+                            $"{nameof(InitUpdateResourceEventData.PlayerId)} was null." +
+                            $"{Environment.NewLine}{jsonString}: {jsonString}");
+
+                    var playerIdString = playerIdNode.ToString();
+                    if (!Guid.TryParse(playerIdString, out var playerId))
+                        throw new ArgumentException(
+                            $"Invalid data format for EventType '{evenTypeString}'. " +
+                            $"{nameof(InitUpdateResourceEventData.PlayerId)} must be of type Guid." +
+                            $"{Environment.NewLine}{jsonString}: {jsonString}");
+
+                    var resourceTypeNode = eventData[nameof(InitUpdateResourceEventData.ResourceType)];
                     if (resourceTypeNode == null)
                         throw new ArgumentException(
                             $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(UpdateResourcesEventData.ResourceType)} was null." +
+                            $"{nameof(InitUpdateResourceEventData.ResourceType)} was null." +
                             $"{Environment.NewLine}{jsonString}: {jsonString}");
 
                     var resourceTypeString = resourceTypeNode.ToString();
                     if (!Enum.TryParse<ResourceType>(resourceTypeString, out var resourceType))
                         throw new ArgumentException(
                             $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(UpdateResourcesEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
+                            $"{nameof(InitUpdateResourceEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
                             $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-                    var amountNode = eventData[nameof(UpdateResourcesEventData.Amount)];
+                    var amountNode = eventData[nameof(InitUpdateResourceEventData.Amount)];
                     if (amountNode == null)
                         throw new ArgumentException(
                             $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(UpdateResourcesEventData.Amount)} was null." +
+                            $"{nameof(InitUpdateResourceEventData.Amount)} was null." +
                             $"{Environment.NewLine}{jsonString}: {jsonString}");
 
                     var amountString = amountNode.ToString();
                     if (!int.TryParse(amountString, out var amount))
                         throw new ArgumentException(
                             $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(UpdateResourcesEventData.Amount)} must be of type int." +
+                            $"{nameof(InitUpdateResourceEventData.Amount)} must be of type int." +
                             $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-                    return new UpdateResourceEvent(new(resourceType, amount));
+                    return new InitUpdateResourceEvent(new(playerId, resourceType, amount));
 
                 // case EventType.SendGift:
                 //     break;

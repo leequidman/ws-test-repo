@@ -80,7 +80,8 @@ namespace GameClient
                             case "u":
                             {
                                 var rnd = new Random();
-                                var request = new UpdateResourceEvent(new(
+                                var request = new InitUpdateResourceEvent(new(
+                                    mdi,
                                     Common.Models.Requests.UpdateResources.ResourceType.Coins,
                                     rnd.Next(1, 10)));
 

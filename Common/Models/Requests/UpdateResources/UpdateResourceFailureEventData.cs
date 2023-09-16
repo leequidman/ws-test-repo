@@ -2,4 +2,4 @@
 
 namespace Common.Models.Requests.UpdateResources;
 
-public record UpdateResourcesEventData(ResourceType ResourceType, int Amount) : IEventData;
+public record UpdateResourceFailureEventData(string ErrorMessage);

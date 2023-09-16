@@ -9,13 +9,3 @@ public class LoginSuccessfulEventData
 
     public Guid PlayerId { get; init; }
 }
-
-public class LoginFailedEventData
-{
-    public LoginFailedEventData(string errorMessage)
-    {
-        ErrorMessage = errorMessage;
-    }
-
-    public string ErrorMessage { get; init; }
-}

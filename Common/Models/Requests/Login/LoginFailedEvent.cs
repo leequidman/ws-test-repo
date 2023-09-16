@@ -2,12 +2,12 @@
 
 namespace Common.Models.Requests.Login;
 
-public class LoginSuccessfulEvent : IEvent
+public class LoginFailedEvent : IEvent
 {
-    public EventType EventType => EventType.LoginSuccessful;
+    public EventType EventType => EventType.LoginFailed;
     public object? EventData { get; init; }
 
-    public LoginSuccessfulEvent(LoginSuccessfulEventData eventData)
+    public LoginFailedEvent(LoginFailedEventData eventData)
     {
         EventData = eventData;
     }
