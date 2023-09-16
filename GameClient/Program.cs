@@ -54,9 +54,11 @@ namespace GameClient
                     }
                 });
 
+                var mdi = Guid.NewGuid();
                 var sendTask = Task.Run(async () =>
                 {
-                    while (true)
+                    var continueLoop = true;
+                    while (continueLoop)
                     {
                         var message = Console.ReadLine();
 
@@ -73,6 +75,18 @@ namespace GameClient
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                             }
+                            case "ll":
+                            {
+                                var loginRequest = new LoginRequest(new()
+                                {
+                                    DeviceId = mdi
+                                });
+
+                                var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
+                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                                break;
+
+                                }
                             case "u":
                             {
                                 var rnd = new Random();
@@ -86,14 +100,20 @@ namespace GameClient
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
                                 break;
                             }
+                            case "e":
+                            {
+                                continueLoop = false;
+                                break;
+
+                            }
+                            default:
+                                Log.Warning($"Unknown command: '{message}'");
+                                break;
+
                         }
 
-                        if (message == "e")
-                        {
-                            break;
-                        }
 
-                        Log.Warning($"Unknown command: '{message}'");
+
                     }
                 });
 

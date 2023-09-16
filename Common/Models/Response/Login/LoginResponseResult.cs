@@ -2,5 +2,10 @@
 
 public class LoginResponseResult
 {
-    public Guid PlayerId { get; set; }
+    public LoginResponseResult(Guid playerId)
+    {
+        PlayerId = playerId;
+    }
+
+    public Guid PlayerId { get; init; }
 }

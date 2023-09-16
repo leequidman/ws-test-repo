@@ -27,6 +27,12 @@ namespace GameServer
                 builder.Host.UseSerilog();
 
                 builder.Services.AddSingleton<Serilog.ILogger>(log);
+                builder.Services.AddSingleton<ILoginHandler, LoginHandler>();
+                builder.Services.AddSingleton<IPlayersService, PlayersService>();
+                builder.Services.AddSingleton<IConnectionService, ConnectionService>();
+                builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
+                builder.Services.AddSingleton<ISender, Sender>();
+
 
 
                 var app = builder.Build();
@@ -70,7 +76,13 @@ namespace GameServer
                                         switch (request.RequestType)
                                         {
                                             case RequestType.Login:
-                                                await HandleLogin(ws, request.RequestData);
+                                                var h = app.Services.GetService<ILoginHandler>();
+                                                
+                                                var data = request.RequestData as LoginRequestData;
+
+                                                await h.Handle(data.DeviceId, ws);
+
+                                                // await HandleLogin(ws, request.RequestData);
                                                 break;
                                             case RequestType.UpdateResources:
                                                 await HandleUpdateResources(ws, request.RequestData);

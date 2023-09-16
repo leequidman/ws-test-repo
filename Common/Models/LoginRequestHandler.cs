@@ -17,10 +17,7 @@ public class LoginRequestHandler : IRequestHandler
     {
         var loginRequestData = requestData as LoginRequestData;
 
-        var loginResponseResult = new LoginResponseResult
-        {
-            PlayerId = Guid.NewGuid()
-        };
+        var loginResponseResult = new LoginResponseResult(Guid.NewGuid());
 
         var loginResponse = new LoginResponse(loginResponseResult);
 
