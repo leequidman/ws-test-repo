@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using Serilog;
 
 namespace GameServer
 {
@@ -8,8 +9,12 @@ namespace GameServer
     {
         public static async Task Main(string[] args)
         {
+            ConfigureLogger();
+
             var builder = WebApplication.CreateBuilder(args);
             builder.WebHost.UseUrls("http://localhost:13371");
+            builder.Host.UseSerilog();
+
             var app = builder.Build();
 
             app.UseWebSockets();
@@ -81,7 +86,16 @@ namespace GameServer
 
 
         }
+        private static void ConfigureLogger()
+        {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .CreateLogger();
+        }
     }
+
+
+
 
 
 }//     // //     while (true)
