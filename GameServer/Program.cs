@@ -4,10 +4,13 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Common.Models;
 using Common.Models.Requests.Abstract;
+using Common.Models.Requests.Login;
 using Common.Models.Requests.UpdateResources;
+using Common.Services;
+using GameServer.Handlers;
+using GameServer.Repositories;
+using GameServer.Services;
 using Serilog;
-using LoginRequestData = Common.Models.LoginRequestData;
-using RequestType = Common.Models.RequestType;
 
 namespace GameServer
 {
@@ -31,7 +34,7 @@ namespace GameServer
                 builder.Services.AddSingleton<IPlayersService, PlayersService>();
                 builder.Services.AddSingleton<IConnectionService, ConnectionService>();
                 builder.Services.AddSingleton<IPlayersRepository, PlayersRepository>();
-                builder.Services.AddSingleton<ISender, Sender>();
+                builder.Services.AddSingleton<IEventSender, EventSender>();
 
 
 
@@ -56,7 +59,7 @@ namespace GameServer
                                     {
                                         var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
 
-                                        IRequest request = null;
+                                        IEvent request = null;
                                         try
                                         {
                                             request = Parse(message);
@@ -73,21 +76,21 @@ namespace GameServer
                                         }
 
                                         // var request = JsonSerializer.Deserialize<Request>(message);
-                                        switch (request.RequestType)
+                                        switch (request.EventType)
                                         {
-                                            case RequestType.Login:
+                                            case EventType.InitLogin:
                                                 var h = app.Services.GetService<ILoginHandler>();
                                                 
-                                                var data = request.RequestData as LoginRequestData;
+                                                var data = request.EventData as InitLoginEventData;
 
                                                 await h.Handle(data.DeviceId, ws);
 
-                                                // await HandleLogin(ws, request.RequestData);
+                                                // await HandleLogin(ws, request.EventData);
                                                 break;
-                                            case RequestType.UpdateResources:
-                                                await HandleUpdateResources(ws, request.RequestData);
+                                            case EventType.UpdateResources:
+                                                await HandleUpdateResources(ws, request.EventData);
                                                 break;
-                                            case RequestType.SendGift:
+                                            case EventType.SendGift:
                                                 break;
                                             default:
                                                 throw new ArgumentOutOfRangeException();
@@ -154,43 +157,31 @@ namespace GameServer
             }
         }
 
-        private static IRequest Parse(string jsonString)
+        private static IEvent Parse(string jsonString)
         {
             var jsonObj = JsonNode.Parse(jsonString)?.AsObject();
-            Enum.TryParse<RequestType>(jsonObj["RequestType"].ToString(), out var type);
+            Enum.TryParse<EventType>(jsonObj["EventType"].ToString(), out var type);
 
             switch (type)
             {
-                case RequestType.Login:
-                    return new Request()
-                    {
-                        RequestType = type,
-                        RequestData = new LoginRequestData
-                        {
-                            DeviceId = Guid.Parse(jsonObj["RequestData"]["DeviceId"].ToString())
-                        }
-                    };
-                case RequestType.UpdateResources:
-                    return new Request()
-                    {
-                        RequestType = type,
-                        RequestData = new UpdateResourcesRequestData
-                        {
-                            Amount = int.Parse(jsonObj["RequestData"]["Amount"].ToString()),
-                            ResourceType = Enum.Parse<ResourceType>(jsonObj["RequestData"]["ResourceType"].ToString())
-                        }
-                    };
+                case EventType.InitLogin:
+                    return new InitLoginEvent(new(Guid.Parse(jsonObj["EventData"]["DeviceId"].ToString())));
 
-                // case RequestType.SendGift:
+                case EventType.UpdateResources:
+                    return new UpdateResourceEvent(new(
+                        Enum.Parse<ResourceType>(jsonObj["EventData"]["ResourceType"].ToString()),
+                        int.Parse(jsonObj["EventData"]["Amount"].ToString())));
+
+                // case EventType.SendGift:
                 //     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
         }
 
-        private static async Task HandleUpdateResources(WebSocket ws, IRequestData requestRequestData)
+        private static async Task HandleUpdateResources(WebSocket ws, object eventEventData)
         {
-            var data = requestRequestData as UpdateResourcesRequestData;
+            var data = eventEventData as UpdateResourcesEventData;
             Log.Information($"Handling UPDATE, Updating '{data.Amount}' of '{data.ResourceType}");
             await Task.Delay(500);
             Log.Information($"UPDATED");
@@ -203,7 +194,8 @@ namespace GameServer
 
         private static async Task HandleLogin(WebSocket ws, object requestRequestData)
         {
-            var data = requestRequestData as LoginRequestData;
+            
+            var data = requestRequestData as InitLoginEventData;
             Log.Information($"Handling login, DeviceId: {data.DeviceId}");
             await Task.Delay(500);
             Log.Information($"Logged in, DeviceId: {data.DeviceId}");

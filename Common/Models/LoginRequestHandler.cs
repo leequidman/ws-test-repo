@@ -1,5 +1,5 @@
 ﻿using Common.Models.Requests.Abstract;
-using Common.Models.Response.Abstract;
+using Common.Models.Requests.Login;
 using Common.Models.Response.Login;
 using Serilog;
 
@@ -7,19 +7,19 @@ namespace Common.Models;
 
 public class LoginRequestHandler : IRequestHandler
 {
-    public RequestType RequestType => RequestType.Login;
+    public EventType EventType => EventType.InitLogin;
 
     public LoginRequestHandler(ILogger logger)
     {
     }
 
-    public async Task<IResponse> Handle(IRequestData requestData)
+    public async Task<IEvent> Handle(IEventData eventData)
     {
-        var loginRequestData = requestData as LoginRequestData;
+        var loginRequestData = eventData as InitLoginEventData;
 
-        var loginResponseResult = new LoginResponseResult(Guid.NewGuid());
+        var loginResponseResult = new LoginSuccessfulEventData(Guid.NewGuid());
 
-        var loginResponse = new LoginResponse(loginResponseResult);
+        var loginResponse = new LoginSuccessfulEvent(loginResponseResult);
 
         return loginResponse;
     }

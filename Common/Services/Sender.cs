@@ -1,21 +1,20 @@
 ﻿using System.Net.WebSockets;
-using System.Text;
 using System.Text.Json;
-using Common.Models.Response.Abstract;
+using Common.Models.Requests.Abstract;
 
-namespace GameServer.Client
+namespace Common.Services
 {
-    public interface ISender
+    public interface IEventSender
     {
-        Task Send(WebSocket ws, IResponse response);
+        Task Send(WebSocket ws, IEvent @event);
         Task Send(WebSocket ws, byte[] data);
     }
 
-    public class Sender : ISender
+    public class EventSender : IEventSender
     {
-        public async Task Send(WebSocket ws, IResponse response)
+        public async Task Send(WebSocket ws, IEvent @event)
         {
-            var data = JsonSerializer.SerializeToUtf8Bytes(response);
+            var data = JsonSerializer.SerializeToUtf8Bytes(@event);
             await Send(ws, data);
         }
         public async Task Send(WebSocket ws, byte[] data)
