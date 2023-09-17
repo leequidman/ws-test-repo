@@ -8,6 +8,7 @@ public class PlayersRepository : IPlayersRepository
 {
     private readonly Serilog.ILogger _logger;
     private static readonly ConcurrentDictionary<Guid, Player> Players = new();
+    private static readonly ConcurrentDictionary<Guid, Guid> PlayerIdToPlayerDeviceId = new();
 
     public PlayersRepository(Serilog.ILogger logger)
     {
@@ -23,8 +24,13 @@ public class PlayersRepository : IPlayersRepository
     {
         var player = new Player(Guid.NewGuid(), deviceId);
 
+        _logger.Information($"Adding new player with id '{player.PlayerId}' and deviceId '{deviceId}'");
+
         if (Players.TryAdd(deviceId, player))
+        {
+            PlayerIdToPlayerDeviceId.TryAdd(player.PlayerId, deviceId);
             return Task.FromResult(player.PlayerId);
+        }
 
         // this deviceId is already in dictionary
         if (Players.TryGetValue(deviceId, out player))
@@ -47,5 +53,14 @@ public class PlayersRepository : IPlayersRepository
         sender.Resources.AddOrUpdate(resource, 0, (key, oldValue) => oldValue - amount);
         receiver.Resources.AddOrUpdate(resource, amount, (key, oldValue) => oldValue + amount);
         return Task.CompletedTask;
+    }
+
+    public Task<Guid> GetPlayerDeviceId(Guid playerId)
+    {
+        if (PlayerIdToPlayerDeviceId.TryGetValue(playerId, out var deviceId))
+            return Task.FromResult(deviceId);
+
+        _logger.Error($"Failed to get deviceId for playerId '{playerId}'"); 
+        throw new($"Failed to get deviceId for playerId '{playerId}'");
     }
 }

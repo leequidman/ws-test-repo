@@ -3,6 +3,7 @@ using Common.EventHandling;
 using Common.Transport;
 using GameServer.Repositories;
 using GameServer.Services;
+using GameServer.Transport;
 using Serilog;
 using ILogger = Serilog.ILogger;
 

@@ -10,4 +10,5 @@ public interface IPlayersRepository
     Task<Guid> AddPlayer(Guid deviceId);
     Task UpdateResources(Guid playerId, ResourceType resourceType, int amount);
     Task TransferResources(Player sender, Player receiver, ResourceType resource, int amount);
+    Task<Guid> GetPlayerDeviceId(Guid playerId);
 }

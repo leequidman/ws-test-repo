@@ -6,14 +6,17 @@ namespace GameServer.Services;
 public interface IConnectionService
 {
     void SetOnline(Guid playerId, WebSocket webSocket);
-    void SetOffline(Guid playerId);
+    void SetOffline(WebSocket ws);
     bool IsOnline(Guid playerId);
     WebSocket? GetWebSocket(Guid playerId);
 }
 
 public class ConnectionService : IConnectionService
 {
-    private readonly ConcurrentDictionary<Guid, WebSocket> _activePlayers = new();
+    // double dictionary for fast access to ws by player id and vice versa
+    // on smaller scale it's not a problem to keep it in memory
+    private readonly ConcurrentDictionary<Guid, WebSocket> _playerIdToWs = new();
+    private readonly ConcurrentDictionary<WebSocket, Guid> _wsToPlayerId = new();
     private readonly Serilog.ILogger _logger;
 
     public ConnectionService(Serilog.ILogger logger)
@@ -23,7 +26,7 @@ public class ConnectionService : IConnectionService
 
     public bool IsOnline(Guid playerId)
     {
-        if (_activePlayers.TryGetValue(playerId, out var ws))
+        if (_playerIdToWs.TryGetValue(playerId, out var ws))
         {
             if (ws.State == WebSocketState.Open)
                 return true;
@@ -33,7 +36,8 @@ public class ConnectionService : IConnectionService
                             $"State: {ws.State}, " +
                             $"CloseStatus: {ws.CloseStatus}, " +
                             $"CloseStatusDescription: {ws.CloseStatusDescription}");
-            _activePlayers.TryRemove(playerId, out _);
+            _playerIdToWs.TryRemove(playerId, out _);
+            _wsToPlayerId.TryRemove(ws, out _);
             return false;
 
         }
@@ -44,7 +48,7 @@ public class ConnectionService : IConnectionService
     public WebSocket? GetWebSocket(Guid playerId)
     {
         if (IsOnline(playerId))
-            if (_activePlayers.TryGetValue(playerId, out var ws))
+            if (_playerIdToWs.TryGetValue(playerId, out var ws))
                 return ws;
 
         return null;
@@ -53,15 +57,19 @@ public class ConnectionService : IConnectionService
 
     public void SetOnline(Guid playerId, WebSocket webSocket)
     {
-        _activePlayers.TryAdd(playerId, webSocket);
-        _logger.Information($"Player {playerId} connected");
+        _playerIdToWs.TryAdd(playerId, webSocket);
+        _wsToPlayerId.TryAdd(webSocket, playerId);
+        _logger.Warning($"Player {playerId} connected");
 
     }
 
-    public void SetOffline(Guid playerId)
+    public void SetOffline(WebSocket ws)
     {
-        _activePlayers.TryRemove(playerId, out _);
-        _logger.Information($"Player {playerId} disconnected");  
+        _wsToPlayerId.TryRemove(ws, out var playerId);
+        if (playerId != Guid.Empty)
+            _playerIdToWs.TryRemove(playerId, out _);
+
+        _logger.Warning($"Player {playerId} disconnected");  
     }
 
         

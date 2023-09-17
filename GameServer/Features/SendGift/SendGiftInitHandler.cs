@@ -104,7 +104,8 @@ public class SendGiftInitHandler : IEventHandler
                                      " keep this gift to yourself");
         }
 
-        var resultData = new { sender, senderAmount, receiver, receiverAmount };
+        (Player sender, int senderAmount, Player receiver, int receiverAmount) resultData =
+            (sender, senderAmount, receiver, receiverAmount);
         return (true, resultData, null);
     }
 }

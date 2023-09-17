@@ -2,19 +2,23 @@
 using System.Text.Json;
 using Common.EventHandling;
 using Common.Models.Requests.Abstract;
-using Serilog;
+using Common.Transport;
+using GameServer.Services;
 
-namespace Common.Transport;
+namespace GameServer.Transport;
 
 public class WebSocketHandler : IWebSocketHandler
 {
     private readonly IBaseMessageHandler _baseMessageHandler;
     private readonly Serilog.ILogger _logger;
+    private readonly IConnectionService _connectionService;
 
-    public WebSocketHandler(IBaseMessageHandler baseMessageHandler, ILogger logger)
+
+    public WebSocketHandler(IBaseMessageHandler baseMessageHandler, Serilog.ILogger logger, IConnectionService connectionService)
     {
         _baseMessageHandler = baseMessageHandler;
         _logger = logger;
+        _connectionService = connectionService;
     }
 
     public async Task ReceiveMessage(WebSocket ws)
@@ -32,7 +36,8 @@ public class WebSocketHandler : IWebSocketHandler
                 }
                 else if (result.MessageType == WebSocketMessageType.Close || ws.State == WebSocketState.Aborted)
                 {
-                    await ws.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                    _connectionService.SetOffline(ws);
+                    await ws.CloseAsync(result.CloseStatus!.Value, result.CloseStatusDescription, CancellationToken.None);
                 }
             }
             catch (Exception e)
@@ -51,6 +56,7 @@ public class WebSocketHandler : IWebSocketHandler
     {
         try
         {
+            _logger.Information($"Sending event: {JsonSerializer.Serialize(@event)}");
             var data = JsonSerializer.SerializeToUtf8Bytes(@event);
             await Send(ws, data);
         }

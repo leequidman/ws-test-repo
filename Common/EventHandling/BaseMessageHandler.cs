@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Common.Models;
 using Common.Models.Requests.Abstract;
+using Serilog;
 
 namespace Common.EventHandling;
 
@@ -15,11 +16,13 @@ public class BaseMessageHandler : IBaseMessageHandler
 {
     private readonly IEventHandlerProvider _eventHandlerProvider;
     private readonly IEventParserProvider _eventParserProvider;
+    private Serilog.ILogger _logger;
 
-    public BaseMessageHandler(IEventHandlerProvider eventHandlerProvider, IEventParserProvider eventParserProvider)
+    public BaseMessageHandler(IEventHandlerProvider eventHandlerProvider, IEventParserProvider eventParserProvider, ILogger logger)
     {
         _eventHandlerProvider = eventHandlerProvider;
         _eventParserProvider = eventParserProvider;
+        _logger = logger;
     }
 
     public async Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer)
@@ -34,6 +37,9 @@ public class BaseMessageHandler : IBaseMessageHandler
         var eventHandlers = _eventHandlerProvider.GetHandlers(eventType);
 
         // (michael_v): point of extension in case multiple handlers are needed for one event
+        _logger.Information($"Start handling event {eventType}: {message}");
+
+
         foreach (var eventHandler in eventHandlers)
             await eventHandler.Handle(eventData, ws);
     }

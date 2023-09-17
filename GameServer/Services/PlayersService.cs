@@ -35,7 +35,9 @@ public class PlayersService : IPlayersService
 
     public async Task<Player?> FindPlayer(Guid playerId)
     {
-        if (await _playersRepository.TryGetPlayer(playerId, out var player))
+        var playerDeviceId = await _playersRepository.GetPlayerDeviceId(playerId);      
+        
+        if (await _playersRepository.TryGetPlayer(playerDeviceId, out var player))
             return player;
         
         return null;
