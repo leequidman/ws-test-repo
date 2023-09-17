@@ -6,12 +6,11 @@ using Common.Models.UpdateResources;
 using FluentAssertions;
 using FluentValidation;
 using GameServer.Features.Login;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
 using NUnit.Framework;
 
-namespace Tests
+namespace Tests.UnitTests
 {
-    public class UnitTests
+    public class LoginInitEventDataValidatorUnitTests
     {
         private readonly LoginInitEventDataValidator _validator = new();
 
