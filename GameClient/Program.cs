@@ -1,133 +1,89 @@
-﻿using System.Net.WebSockets;
+﻿using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using System.Text;
 using Serilog;
 using System.Text.Json;
 using Common.Models.Requests.Login;
+using Common.Models.Requests.SendGift;
 using Common.Models.Requests.UpdateResources;
+using Common.Models.Requests.GiftReceived;
+using Common.Models.Requests.Abstract;
+using System.Text.Json.Nodes;
 
 namespace GameClient;
 
+/// <summary>
+/// Used for local debugging server
+/// </summary>
 internal class Program
 {
     static async Task Main(string[] args)
     {
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .WriteTo.Console()
-            .CreateLogger();
+        while (true)
+        {
+            Console.Write("Press any key to start");
+            Console.ReadKey();
+            break;
+        }
 
+        Client client1 = new(Guid.NewGuid());
+        Client client2 = new(Guid.NewGuid());
         try
         {
-            Log.Information("Hello, world!");
+            var receiveTask1 = await client1.Connect();
+
+            await client1.Login();
+            var loginSuccessfulEvent = await GetEventWithDelay<LoginSuccessfulEventData>(client1.Messages);
+
+            await client1.Login();
+            await GetEventWithDelay<LoginFailedEventData>(client1.Messages);
+
+            await client1.UpdateResource(ResourceType.Coins, 100);
+            await GetEventWithDelay<UpdateResourceSuccessEventData>(client1.Messages);
+
+            client2 = new(Guid.NewGuid());
+            var receiveTask2 = await client2.Connect();
+            await client2.Login();
+            var loginSuccessfulEvent2 = await GetEventWithDelay<LoginSuccessfulEventData>(client2.Messages);
+
+            await client2.UpdateResource(ResourceType.Coins, 2);
+            await GetEventWithDelay<UpdateResourceSuccessEventData>(client2.Messages);
+
+            await client1.SendGift(loginSuccessfulEvent.PlayerId, loginSuccessfulEvent2.PlayerId, ResourceType.Coins, 1);
+            await GetEventWithDelay<SendGiftSuccessEventData>(client1.Messages);
+
+            await GetEventWithDelay<GiftReceivedEventData>(client2.Messages);
 
 
-            var ws = new ClientWebSocket();
-            while (true)
-            {
-                Console.Write("Press any key to start");
-                Console.ReadKey();
-                break;
-            }
+            await client1.Disconnect();
+            await client2.Disconnect();
 
-            Log.Information("Start connecting...");
-            await ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
-            Log.Information("Connected");
-
-
-            var receiveTask = Task.Run(async () =>
-            {
-                var buffer = new byte[1024 * 4];
-                while (true)
-                {
-                    try
-                    {
-                        var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
-
-                        if (result.MessageType == WebSocketMessageType.Close)
-                        {
-                            break;
-                        }
-
-                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        Log.Information(message);
-                    }
-                    catch (Exception exception)
-                    {
-                        Log.Error(exception, "Error while receiving");      
-                    }
-                }
-            });
-
-            var mdi = Guid.NewGuid();
-            var sendTask = Task.Run(async () =>
-            {
-                var continueLoop = true;
-                while (continueLoop)
-                {
-                    var message = Console.ReadLine();
-
-                    switch (message)
-                    {
-                        case "l":
-                        {
-                            var loginRequest = new LoginInitEvent(new(Guid.NewGuid()));
-
-                            var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
-                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                            break;
-                        }
-                        case "ll":
-                        {
-                            var loginRequest = new LoginInitEvent(new(mdi));
-
-                            var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
-                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                            break;
-                        }
-                        case "u":
-                        {
-                            var rnd = new Random();
-                            var request = new UpdateResourceInitEvent(new(
-                                mdi,
-                                Common.Models.Requests.UpdateResources.ResourceType.Coins,
-                                rnd.Next(1, 10)));
-
-                            var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
-                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                            break;
-                        }
-                        case "e":
-                        {
-                            continueLoop = false;
-                            break;
-                        }
-                        default:
-                            Log.Warning($"Unknown command: '{message}'");
-                            break;
-                    }
-                }
-            });
-
-            await Task.WhenAny(sendTask, receiveTask);
-
-            Log.Information("After when any");
-
-
-            if (ws.State != WebSocketState.Closed)
-            {
-                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-            }
-
-
-            await Task.WhenAll(sendTask, receiveTask);
+            await receiveTask1;
+            await receiveTask2;
         }
-        catch (Exception e)
+        catch
         {
-            Log.Error(e, "Unexpected error");
+            await client1.Disconnect();
+            await client2.Disconnect();
+            throw;
         }
-        finally
+    }
+
+    private static async Task<TEventType> GetEventWithDelay<TEventType>(ConcurrentQueue<string> queue)
+    {
+        if (!queue.TryDequeue(out var jsonString))
         {
-            await Log.CloseAndFlushAsync();
+            await Task.Delay(1000);
+            if (!queue.TryDequeue(out jsonString))
+                throw new("Expected message was not received");
         }
+
+        var jsonObj = JsonNode.Parse(jsonString!)!.AsObject();
+
+        var eventData = jsonObj[nameof(IEvent.EventData)];
+
+
+        var receivedEvent = eventData.Deserialize<TEventType>();
+        return receivedEvent!;
     }
 }
