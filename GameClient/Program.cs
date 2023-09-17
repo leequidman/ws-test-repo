@@ -5,123 +5,122 @@ using System.Text.Json;
 using Common.Models.Requests.Login;
 using Common.Models.Requests.UpdateResources;
 
-namespace GameClient
+namespace GameClient;
+
+internal class Program
 {
-    internal class Program
+    static async Task Main(string[] args)
     {
-        static async Task Main(string[] args)
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Information()
+            .WriteTo.Console()
+            .CreateLogger();
+
+        try
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .WriteTo.Console()
-                .CreateLogger();
+            Log.Information("Hello, world!");
 
-            try
+
+            var ws = new ClientWebSocket();
+            while (true)
             {
-                Log.Information("Hello, world!");
+                Console.Write("Press any key to start");
+                Console.ReadKey();
+                break;
+            }
+
+            Log.Information("Start connecting...");
+            await ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
+            Log.Information("Connected");
 
 
-                var ws = new ClientWebSocket();
+            var receiveTask = Task.Run(async () =>
+            {
+                var buffer = new byte[1024 * 4];
                 while (true)
                 {
-                    Console.Write("Press any key to start");
-                    Console.ReadKey();
-                    break;
-                }
+                    var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
 
-                Log.Information("Start connecting...");
-                await ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
-                Log.Information("Connected");
-
-
-                var receiveTask = Task.Run(async () =>
-                {
-                    var buffer = new byte[1024 * 4];
-                    while (true)
+                    if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
+                        break;
+                    }
 
-                        if (result.MessageType == WebSocketMessageType.Close)
+                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                    Log.Information(message);
+                }
+            });
+
+            var mdi = Guid.NewGuid();
+            var sendTask = Task.Run(async () =>
+            {
+                var continueLoop = true;
+                while (continueLoop)
+                {
+                    var message = Console.ReadLine();
+
+                    switch (message)
+                    {
+                        case "l":
                         {
+                            var loginRequest = new LoginInitEvent(new(Guid.NewGuid()));
+
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
+                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
                             break;
                         }
-
-                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        Log.Information(message);
-                    }
-                });
-
-                var mdi = Guid.NewGuid();
-                var sendTask = Task.Run(async () =>
-                {
-                    var continueLoop = true;
-                    while (continueLoop)
-                    {
-                        var message = Console.ReadLine();
-
-                        switch (message)
+                        case "ll":
                         {
-                            case "l":
-                            {
-                                var loginRequest = new LoginInitEvent(new(Guid.NewGuid()));
+                            var loginRequest = new LoginInitEvent(new(mdi));
 
-                                var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
-                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                                break;
-                            }
-                            case "ll":
-                            {
-                                var loginRequest = new LoginInitEvent(new(mdi));
-
-                                var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
-                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                                break;
-                            }
-                            case "u":
-                            {
-                                var rnd = new Random();
-                                var request = new InitUpdateResourceEvent(new(
-                                    mdi,
-                                    Common.Models.Requests.UpdateResources.ResourceType.Coins,
-                                    rnd.Next(1, 10)));
-
-                                var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
-                                await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
-                                break;
-                            }
-                            case "e":
-                            {
-                                continueLoop = false;
-                                break;
-                            }
-                            default:
-                                Log.Warning($"Unknown command: '{message}'");
-                                break;
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
+                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                            break;
                         }
+                        case "u":
+                        {
+                            var rnd = new Random();
+                            var request = new UpdateResourceInitEvent(new(
+                                mdi,
+                                Common.Models.Requests.UpdateResources.ResourceType.Coins,
+                                rnd.Next(1, 10)));
+
+                            var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
+                            await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+                            break;
+                        }
+                        case "e":
+                        {
+                            continueLoop = false;
+                            break;
+                        }
+                        default:
+                            Log.Warning($"Unknown command: '{message}'");
+                            break;
                     }
-                });
-
-                await Task.WhenAny(sendTask, receiveTask);
-
-                Log.Information("After when any");
-
-
-                if (ws.State != WebSocketState.Closed)
-                {
-                    await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                 }
+            });
+
+            await Task.WhenAny(sendTask, receiveTask);
+
+            Log.Information("After when any");
 
 
-                await Task.WhenAll(sendTask, receiveTask);
-            }
-            catch (Exception e)
+            if (ws.State != WebSocketState.Closed)
             {
-                Log.Error(e, "Unexpected error");
+                await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
             }
-            finally
-            {
-                await Log.CloseAndFlushAsync();
-            }
+
+
+            await Task.WhenAll(sendTask, receiveTask);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Unexpected error");
+        }
+        finally
+        {
+            await Log.CloseAndFlushAsync();
         }
     }
 }

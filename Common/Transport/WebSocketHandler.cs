@@ -2,16 +2,19 @@
 using System.Text.Json;
 using Common.EventHandling;
 using Common.Models.Requests.Abstract;
+using Serilog;
 
 namespace Common.Transport;
 
 public class WebSocketHandler : IWebSocketHandler
 {
     private readonly IBaseMessageHandler _baseMessageHandler;
+    private readonly Serilog.ILogger _logger;
 
-    public WebSocketHandler(IBaseMessageHandler baseMessageHandler)
+    public WebSocketHandler(IBaseMessageHandler baseMessageHandler, ILogger logger)
     {
         _baseMessageHandler = baseMessageHandler;
+        _logger = logger;
     }
 
     public async Task ReceiveMessage(WebSocket ws)
@@ -39,6 +42,12 @@ public class WebSocketHandler : IWebSocketHandler
     }
     private async Task Send(WebSocket ws, byte[] data)
     {
+        if (ws.State != WebSocketState.Open)
+        {
+            _logger.Warning($"Can't send message to {ws.CloseStatus} socket.");
+            return;
+
+        }
         var arraySegment = new ArraySegment<byte>(data, 0, data.Length);
         await ws.SendAsync(arraySegment, WebSocketMessageType.Text, true, CancellationToken.None);
     }

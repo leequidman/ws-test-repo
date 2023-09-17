@@ -4,47 +4,46 @@ using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
 using Common.Transport;
+using GameServer.EventDataProcessing;
 using GameServer.Services;
 using JetBrains.Annotations;
 
-namespace GameServer.Handlers
+namespace GameServer.Handlers;
+
+[UsedImplicitly]
+public class LoginInitHandler : IEventHandler
 {
-    [UsedImplicitly]
-    public class LoginInitHandler : IEventHandler
+    private readonly IPlayersService _playersService;
+    private readonly IConnectionService _connectionService;
+    private readonly IWebSocketHandler _webSocketHandler;
+    private readonly LoginInitEventDataProcessor _dataProcessor = new();
+    private readonly Serilog.ILogger _logger;
+
+    public EventType EventType => EventType.LoginInit;
+
+    public LoginInitHandler(
+        IPlayersService playersService,
+        IConnectionService connectionService, 
+        IWebSocketHandler webSocketHandler,
+        Serilog.ILogger logger)
     {
-        private readonly IPlayersService _playersService;
-        private readonly IConnectionService _connectionService;
-        private readonly IWebSocketHandler _webSocketHandler;
+        _playersService = playersService;
+        _connectionService = connectionService;
+        _webSocketHandler = webSocketHandler;
+        _logger = logger;
+    }
 
-        public EventType EventType => EventType.LoginInit;
+    public async Task Handle(object? eventData, WebSocket ws)
+    {
+        var data = _dataProcessor.PrepareEventData(eventData);
 
-        public LoginInitHandler(IPlayersService playersService, IConnectionService connectionService, IWebSocketHandler webSocketHandler)
+        var playerId = await _playersService.GetOrAddPlayerId(data.DeviceId);
+
+        IEvent loginEvent;
+        try
         {
-            _playersService = playersService;
-            _connectionService = connectionService;
-            _webSocketHandler = webSocketHandler;
-        }
-
-        public async Task Handle(object? eventData, WebSocket ws)
-        {
-            if (eventData is null)
-                throw new ArgumentException($"Expected {nameof(eventData)} to be non-null");
-
-            if (eventData is not LoginInitEventData initLoginEventData)
-                throw new ArgumentException($"Expected {nameof(LoginInitEventData)} but got {eventData.GetType().Name}");
-
-            if (initLoginEventData == null)
-                throw new ArgumentException($"Expected {nameof(initLoginEventData)} to be non-null");
-
-            if (initLoginEventData.DeviceId == Guid.Empty)
-                throw new ArgumentException($"Expected {nameof(initLoginEventData.DeviceId)} to be non-empty");
-
-            var playerId = await _playersService.GetOrAddPlayerId(initLoginEventData.DeviceId);
-
-            IEvent loginEvent;
-            if (_connectionService.IsOnline(playerId))
+            if (_connectionService.IsOnline(playerId)) // mb go with silent success instead?
             {
-                // mb go with silent success instead?
                 loginEvent = new LoginFailedEvent(new($"Player {playerId} is already online"));
             }
             else
@@ -52,8 +51,13 @@ namespace GameServer.Handlers
                 _connectionService.SetOnline(playerId, ws);
                 loginEvent = new LoginSuccessfulEvent(new(playerId));
             }
-
-            await _webSocketHandler.SendEvent(ws, loginEvent);
         }
+        catch (Exception e)
+        {
+            _logger.Error(e, $"Failed to login by device id '{data.DeviceId}'.");
+            loginEvent = new LoginFailedEvent(new($"Failed to login by device id '{data.DeviceId}': {e.Message}"));
+        }
+
+        await _webSocketHandler.SendEvent(ws, loginEvent);
     }
 }

@@ -2,8 +2,10 @@
 using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
+using Common.Models.Requests.Login;
 using Common.Models.Requests.UpdateResources;
 using Common.Transport;
+using GameServer.EventDataProcessing;
 using GameServer.Services;
 using JetBrains.Annotations;
 using ILogger = Serilog.ILogger;
@@ -16,6 +18,7 @@ public class UpdateResourcesHandler : IEventHandler
     private readonly IPlayersService _playersService;
     private readonly ILogger _logger;
     private readonly IWebSocketHandler _webSocketHandler;
+    private readonly UpdateResourceInitEventDataProcessor _dataProcessor = new();
 
     public UpdateResourcesHandler(IPlayersService playersService, ILogger logger, IWebSocketHandler webSocketHandler)
     {
@@ -28,23 +31,7 @@ public class UpdateResourcesHandler : IEventHandler
 
     public async Task Handle(object? eventData, WebSocket ws)
     {
-        if (eventData is null)
-            throw new ArgumentException($"Expected {nameof(eventData)} to be non-null");
-
-        if (eventData is not InitUpdateResourceEventData data)
-            throw new ArgumentException($"Expected {nameof(InitUpdateResourceEventData)} but got {eventData.GetType().Name}");
-
-        if (data == null)
-            throw new ArgumentException($"Expected {nameof(data)} to be non-null");
-
-        if (data.PlayerId is null || data.PlayerId == Guid.Empty)    
-            throw new ArgumentException($"Expected {nameof(data.PlayerId)} to be non-empty");       
-
-        if (data.ResourceType is null)
-            throw new ArgumentException($"Expected {nameof(data.ResourceType)} to be non-null");
-
-        if (data.Amount is null)
-            throw new ArgumentException($"Expected {nameof(data.Amount)} to be non-null");
+        var data = _dataProcessor.PrepareEventData(eventData);
 
         IEvent updateResourceEvent;
 

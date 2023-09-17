@@ -12,5 +12,6 @@ public enum EventType
 
     SendGiftInit,
     SendGiftSuccess,
-    SendGiftFailure
+    SendGiftFailure,
+    GiftReceived
 }

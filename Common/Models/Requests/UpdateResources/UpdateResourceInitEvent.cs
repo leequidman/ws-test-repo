@@ -2,12 +2,12 @@
 
 namespace Common.Models.Requests.UpdateResources;
 
-public record InitUpdateResourceEvent : IEvent
+public record UpdateResourceInitEvent : IEvent
 {
     public EventType EventType => EventType.UpdateResourceInit;
     public object? EventData { get; init; }
 
-    public InitUpdateResourceEvent(InitUpdateResourceEventData eventData)
+    public UpdateResourceInitEvent(UpdateResourceInitEventData eventData)
     {
         EventData = eventData;
     }

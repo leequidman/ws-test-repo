@@ -6,114 +6,113 @@ using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
 using Common.Models.Requests.UpdateResources;
 
-namespace Common.EventHandling
+namespace Common.EventHandling;
+
+public interface IBaseMessageHandler
 {
-    public interface IBaseMessageHandler
+    Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer);
+}
+
+public class BaseMessageHandler : IBaseMessageHandler
+{
+    private readonly IEventHandlerProvider _eventHandlerProvider;
+
+    public BaseMessageHandler(IEventHandlerProvider eventHandlerProvider)
     {
-        Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer);
+        _eventHandlerProvider = eventHandlerProvider;
     }
 
-    public class BaseMessageHandler : IBaseMessageHandler
+    public async Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer)
     {
-        private readonly IEventHandlerProvider _eventHandlerProvider;
+        var message = Encoding.UTF8.GetString(buffer, 0, webSocketReceiveResult.Count);
+        var @event = Parse(message);
 
-        public BaseMessageHandler(IEventHandlerProvider eventHandlerProvider)
+        var eventHandlers = _eventHandlerProvider.GetHandlers(@event.EventType);
+
+        // (michael_v): point of extension in case multiple handlers are needed for one event
+        foreach (var eventHandler in eventHandlers)
+            await eventHandler.Handle(@event.EventData, ws);
+    }
+
+    private static IEvent Parse(string jsonString)
+    {
+        // todo: to FluentAssertions
+        var jsonObj = JsonNode.Parse(jsonString)?.AsObject();
+        if (jsonObj == null)
+            throw new ArgumentException($"Invalid json: {jsonString}");
+
+        var jsonNode = jsonObj[nameof(IEvent.EventType)];
+        if (jsonNode == null)
+            throw new ArgumentException($"Invalid json: {jsonString}. " +
+                                        $"{Environment.NewLine}Failed to get EventType.");
+
+        var evenTypeString = jsonNode.ToString();
+        if (!Enum.TryParse<EventType>(evenTypeString, out var type))
+            throw new ArgumentException($"Unknown event type: {evenTypeString}");
+
+        switch (type)
         {
-            _eventHandlerProvider = eventHandlerProvider;
-        }
+            case EventType.LoginInit:
+                var node = jsonObj[nameof(IEvent.EventData)]?[nameof(LoginInitEventData.DeviceId)];
+                if (node == null)
+                    throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
+                                                $"{Environment.NewLine}{jsonString}: {jsonString}");
+                return new LoginInitEvent(new(Guid.Parse(node.ToString())));
 
-        public async Task Handle(WebSocketReceiveResult webSocketReceiveResult, WebSocket ws, byte[] buffer)
-        {
-            var message = Encoding.UTF8.GetString(buffer, 0, webSocketReceiveResult.Count);
-            var @event = Parse(message);
+            case EventType.UpdateResourceInit:
+                var eventData = jsonObj[nameof(IEvent.EventData)];
+                if (eventData == null)
+                    throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
+                                                $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-            var eventHandlers = _eventHandlerProvider.GetHandlers(@event.EventType);
+                var playerIdNode = eventData[nameof(UpdateResourceInitEventData.PlayerId)];
+                if (playerIdNode == null)
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.PlayerId)} was null." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-            // (michael_v): point of extension in case multiple handlers are needed for one event
-            foreach (var eventHandler in eventHandlers)
-                await eventHandler.Handle(@event.EventData, ws);
-        }
+                var playerIdString = playerIdNode.ToString();
+                if (!Guid.TryParse(playerIdString, out var playerId))
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.PlayerId)} must be of type Guid." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-        private static IEvent Parse(string jsonString)
-        {
-            // todo: to FluentAssertions
-            var jsonObj = JsonNode.Parse(jsonString)?.AsObject();
-            if (jsonObj == null)
-                throw new ArgumentException($"Invalid json: {jsonString}");
+                var resourceTypeNode = eventData[nameof(UpdateResourceInitEventData.ResourceType)];
+                if (resourceTypeNode == null)
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.ResourceType)} was null." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-            var jsonNode = jsonObj[nameof(IEvent.EventType)];
-            if (jsonNode == null)
-                throw new ArgumentException($"Invalid json: {jsonString}. " +
-                                            $"{Environment.NewLine}Failed to get EventType.");
+                var resourceTypeString = resourceTypeNode.ToString();
+                if (!Enum.TryParse<ResourceType>(resourceTypeString, out var resourceType))
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-            var evenTypeString = jsonNode.ToString();
-            if (!Enum.TryParse<EventType>(evenTypeString, out var type))
-                throw new ArgumentException($"Unknown event type: {evenTypeString}");
+                var amountNode = eventData[nameof(UpdateResourceInitEventData.Amount)];
+                if (amountNode == null)
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.Amount)} was null." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-            switch (type)
-            {
-                case EventType.LoginInit:
-                    var node = jsonObj[nameof(IEvent.EventData)]?[nameof(LoginInitEventData.DeviceId)];
-                    if (node == null)
-                        throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
-                                                    $"{Environment.NewLine}{jsonString}: {jsonString}");
-                    return new LoginInitEvent(new(Guid.Parse(node.ToString())));
+                var amountString = amountNode.ToString();
+                if (!int.TryParse(amountString, out var amount))
+                    throw new ArgumentException(
+                        $"Invalid data format for EventType '{evenTypeString}'. " +
+                        $"{nameof(UpdateResourceInitEventData.Amount)} must be of type int." +
+                        $"{Environment.NewLine}{jsonString}: {jsonString}");
 
-                case EventType.UpdateResourceInit:
-                    var eventData = jsonObj[nameof(IEvent.EventData)];
-                    if (eventData == null)
-                        throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
-                                                    $"{Environment.NewLine}{jsonString}: {jsonString}");
+                return new UpdateResourceInitEvent(new(playerId, resourceType, amount));
 
-                    var playerIdNode = eventData[nameof(InitUpdateResourceEventData.PlayerId)];
-                    if (playerIdNode == null)
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.PlayerId)} was null." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    var playerIdString = playerIdNode.ToString();
-                    if (!Guid.TryParse(playerIdString, out var playerId))
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.PlayerId)} must be of type Guid." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    var resourceTypeNode = eventData[nameof(InitUpdateResourceEventData.ResourceType)];
-                    if (resourceTypeNode == null)
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.ResourceType)} was null." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    var resourceTypeString = resourceTypeNode.ToString();
-                    if (!Enum.TryParse<ResourceType>(resourceTypeString, out var resourceType))
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    var amountNode = eventData[nameof(InitUpdateResourceEventData.Amount)];
-                    if (amountNode == null)
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.Amount)} was null." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    var amountString = amountNode.ToString();
-                    if (!int.TryParse(amountString, out var amount))
-                        throw new ArgumentException(
-                            $"Invalid data format for EventType '{evenTypeString}'. " +
-                            $"{nameof(InitUpdateResourceEventData.Amount)} must be of type int." +
-                            $"{Environment.NewLine}{jsonString}: {jsonString}");
-
-                    return new InitUpdateResourceEvent(new(playerId, resourceType, amount));
-
-                // case EventType.SendGiftInit:
-                //     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
+            // case EventType.SendGiftInit:
+            //     break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 }
