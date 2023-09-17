@@ -22,7 +22,7 @@ public class WebSocketHandler : IWebSocketHandler
 
     public async Task ReceiveMessage(WebSocket ws)
     {
-        var buffer = new byte[1024 * 4];
+        var buffer = new byte[Common.Constants.WebSocketReceiveBufferSize];
         while (ws.State == WebSocketState.Open)
         {
             try

@@ -50,7 +50,7 @@ public class Client
 
         try
         {
-            await _ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
+            await _ws.ConnectAsync(new("ws://" + Common.Constants.EndpointUrl + "/ws"), CancellationToken.None);
             _logger.Information($"Connected with deviceId '{_deviceId}'");
 
             return ReceiveMessages();
@@ -69,7 +69,7 @@ public class Client
 
     private async Task ReceiveMessages()
     {
-        var buffer = new byte[1024 * 4];
+        var buffer = new byte[Common.Constants.WebSocketReceiveBufferSize];
         while (_ws.State == WebSocketState.Open)
         {
             try

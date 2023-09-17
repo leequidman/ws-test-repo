@@ -19,7 +19,7 @@ public class Program
         try
         {
             var builder = WebApplication.CreateBuilder(args);
-            builder.WebHost.UseUrls("http://localhost:13371"); // todo: to appsettings/cmd params/constants
+            builder.WebHost.UseUrls("http://" + Common.Constants.EndpointUrl);
             builder.Host.UseSerilog();
 
             RegisterDependencies(builder, log);
