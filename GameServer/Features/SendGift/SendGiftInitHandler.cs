@@ -5,6 +5,7 @@ using Common.Models.Requests.Abstract;
 using Common.Models.Requests.GiftReceived;
 using Common.Models.Requests.SendGift;
 using Common.Transport;
+using GameServer.Repositories.Models;
 using GameServer.Services;
 using ILogger = Serilog.ILogger;
 
@@ -18,7 +19,8 @@ public class SendGiftInitHandler : IEventHandler
     private readonly IConnectionService _connectionService;
     private readonly ILogger _logger;
 
-    public SendGiftInitHandler(IPlayersService playersService, IWebSocketHandler webSocketHandler, IConnectionService connectionService, ILogger logger)
+    public SendGiftInitHandler(IPlayersService playersService, IWebSocketHandler webSocketHandler, IConnectionService connectionService,
+        ILogger logger)
     {
         _playersService = playersService;
         _webSocketHandler = webSocketHandler;
@@ -28,52 +30,23 @@ public class SendGiftInitHandler : IEventHandler
 
     public EventType EventType => EventType.SendGiftInit;
 
+
     public async Task Handle(object? eventData, WebSocket ws)
     {
         var data = _dataProcessor.PrepareEventData(eventData);
 
         IEvent resultEvent;
 
-        var sender = await _playersService.FindPlayer(data.SenderId);
-        if (sender is null)
+        var (isTransactionPossible, resultData, error) = await IsTransactionPossible(data);
+        if (!isTransactionPossible)
         {
-            resultEvent = new SendGiftFailureEvent(new($"Player {data.SenderId} not found, can't send gift from him"));
-            await _webSocketHandler.SendEvent(ws, resultEvent);
-            return;
-        }
-        var receiver = await _playersService.FindPlayer(data.ReceiverId);
-        if (receiver is null)
-        {
-            resultEvent = new SendGiftFailureEvent(new($"Player {data.ReceiverId} not found, can't send gift to him"));
+            resultEvent = new SendGiftFailureEvent(new(error!));
             await _webSocketHandler.SendEvent(ws, resultEvent);
             return;
         }
 
-        if (!sender.Resources.TryGetValue(data.Resource, out var senderAmount) || senderAmount < data.Amount)
-        {
-            resultEvent = new SendGiftFailureEvent(new($"Player '{data.SenderId}' has '{senderAmount}' " +
-                                                       $"of '{data.Resource}', that's not enough to send '{data.Amount}' as gift"));
-            await _webSocketHandler.SendEvent(ws, resultEvent);
-            return;
-        }
-
-        if (!receiver.Resources.TryGetValue(data.Resource, out var receiverAmount))
-        {
-            await _playersService.UpdateResources(data.ReceiverId, data.Resource, 0);
-            receiverAmount = 0;
-        }
-
-        unchecked
-        {
-            if (receiverAmount + data.Amount < 0) // int overflow   
-            {
-                resultEvent = new SendGiftFailureEvent(new(
-                    $"Player '{data.ReceiverId}' has too much of '{data.Resource}' ('{receiverAmount}')," +
-                    " keep this gift to yourself"));
-                await _webSocketHandler.SendEvent(ws, resultEvent);
-                return;
-            }
-        }
+        var (sender, senderAmount, receiver, receiverAmount) =
+            ((Player sender, int senderAmount, Player receiver, int receiverAmount))resultData!;
 
         await _playersService.TransferResources(sender, receiver, data.Resource, data.Amount);
         resultEvent = new SendGiftSuccessEvent(
@@ -101,7 +74,37 @@ public class SendGiftInitHandler : IEventHandler
                 await _webSocketHandler.SendEvent(receiverWs, giftReceivedEvent);
             }
         }
+    }
 
+    // better use TResult pattern, but will require too many boilerplate code for 1 call
+    private async Task<(bool isTransactionPossible, object? result, string? error)> IsTransactionPossible(SendGiftInitEventData data)
+    {
+        var sender = await _playersService.FindPlayer(data.SenderId);
+        if (sender is null)
+            return (false, null, $"Player {data.SenderId} not found, can't send gift from him");
 
+        var receiver = await _playersService.FindPlayer(data.ReceiverId);
+        if (receiver is null)
+            return (false, null, $"Player {data.ReceiverId} not found, can't send gift to him");
+
+        if (!sender.Resources.TryGetValue(data.Resource, out var senderAmount) || senderAmount < data.Amount)
+            return (false, null, $"Player '{data.SenderId}' has '{senderAmount}' " +
+                                 $"of '{data.Resource}', that's not enough to send '{data.Amount}' as gift");
+
+        if (!receiver.Resources.TryGetValue(data.Resource, out var receiverAmount))
+        {
+            await _playersService.UpdateResources(data.ReceiverId, data.Resource, 0);
+            receiverAmount = 0;
+        }
+
+        unchecked
+        {
+            if (receiverAmount + data.Amount < 0) // int overflow   
+                return (false, null, $"Player '{data.ReceiverId}' has too much of '{data.Resource}' ('{receiverAmount}')," +
+                                     " keep this gift to yourself");
+        }
+
+        var resultData = new { sender, senderAmount, receiver, receiverAmount };
+        return (true, resultData, null);
     }
 }

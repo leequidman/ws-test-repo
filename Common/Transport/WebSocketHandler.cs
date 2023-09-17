@@ -37,8 +37,20 @@ public class WebSocketHandler : IWebSocketHandler
 
     public async Task SendEvent(WebSocket ws, IEvent @event)
     {
-        var data = JsonSerializer.SerializeToUtf8Bytes(@event);
-        await Send(ws, data);
+        try
+        {
+            var data = JsonSerializer.SerializeToUtf8Bytes(@event);
+            await Send(ws, data);
+        }
+        catch (Exception e)
+        {
+            _logger.Error(e,
+                $"Failed to send event {@event.EventType}." +
+                "WS info: " +
+                $"State: {ws.State}, " +
+                $"CloseStatus: {ws.CloseStatus}, " +
+                $"CloseStatusDescription: {ws.CloseStatusDescription}");
+        }
     }
     private async Task Send(WebSocket ws, byte[] data)
     {

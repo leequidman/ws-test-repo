@@ -35,7 +35,7 @@ public class UpdateResourceInitHandler : IEventHandler
 
         try
         {
-            await _playersService.UpdateResources((Guid)data.PlayerId, data.ResourceType.Value, data.Amount.Value);
+            await _playersService.UpdateResources((Guid)data.PlayerId!, data.ResourceType!.Value, data.Amount!.Value);
             updateResourceEvent = new UpdateResourceSuccessEvent(new(data.PlayerId.Value, data.ResourceType.Value, data.Amount.Value));
         }
         catch (Exception e)
