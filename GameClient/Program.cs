@@ -39,15 +39,22 @@ internal class Program
                 var buffer = new byte[1024 * 4];
                 while (true)
                 {
-                    var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
-
-                    if (result.MessageType == WebSocketMessageType.Close)
+                    try
                     {
-                        break;
-                    }
+                        var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
 
-                    var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    Log.Information(message);
+                        if (result.MessageType == WebSocketMessageType.Close)
+                        {
+                            break;
+                        }
+
+                        var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+                        Log.Information(message);
+                    }
+                    catch (Exception exception)
+                    {
+                        Log.Error(exception, "Error while receiving");      
+                    }
                 }
             });
 

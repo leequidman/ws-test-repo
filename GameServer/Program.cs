@@ -70,11 +70,19 @@ public class Program
         builder.Services.AddSingleton<IWebSocketHandler, WebSocketHandler>();
         builder.Services.AddSingleton<IBaseMessageHandler, BaseMessageHandler>();
         builder.Services.AddSingleton<IEventHandlerProvider, EventHandlerProvider>();
+        builder.Services.AddSingleton<IEventParserProvider, EventParserProvider>();
 
-        var handlerTypes = typeof(Program).Assembly.GetTypes()
+        var handlerTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.GetTypes())
             .Where(type => typeof(IEventHandler).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
+        foreach (var handler in handlerTypes)
+            builder.Services.Add(new(typeof(IEventHandler), handler, ServiceLifetime.Singleton));
 
-        foreach (var rule in handlerTypes) 
-            builder.Services.Add(new(typeof(IEventHandler), rule, ServiceLifetime.Singleton));
+
+        var parserTypes = AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => typeof(IEventParser).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract);
+        foreach (var parser in parserTypes)
+            builder.Services.Add(new(typeof(IEventParser), parser, ServiceLifetime.Singleton));
     }
 }

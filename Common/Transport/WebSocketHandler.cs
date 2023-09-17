@@ -22,15 +22,27 @@ public class WebSocketHandler : IWebSocketHandler
         var buffer = new byte[1024 * 4];
         while (ws.State == WebSocketState.Open)
         {
-            var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
+            try
+            {
+                var result = await ws.ReceiveAsync(new(buffer), CancellationToken.None);
 
-            if (result.MessageType == WebSocketMessageType.Text)
-            {
-                await _baseMessageHandler.Handle(result, ws, buffer);
+                if (result.MessageType == WebSocketMessageType.Text)
+                {
+                    await _baseMessageHandler.Handle(result, ws, buffer);
+                }
+                else if (result.MessageType == WebSocketMessageType.Close || ws.State == WebSocketState.Aborted)
+                {
+                    await ws.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                }
             }
-            else if (result.MessageType == WebSocketMessageType.Close || ws.State == WebSocketState.Aborted)
+            catch (Exception e)
             {
-                await ws.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
+                _logger.Information(e,"Failed to receive message." +
+                                    "WS info: " +
+                                    $"State: {ws.State}, " +
+                                    $"CloseStatus: {ws.CloseStatus}, " +
+                                    $"CloseStatusDescription: {ws.CloseStatusDescription}");
+
             }
         }
     }
