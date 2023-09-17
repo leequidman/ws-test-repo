@@ -1,7 +1,6 @@
 using System.Net;
 using Common.EventHandling;
 using Common.Transport;
-using GameServer.Handlers;
 using GameServer.Repositories;
 using GameServer.Services;
 using Serilog;

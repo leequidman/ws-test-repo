@@ -1,7 +1,7 @@
 ﻿using Common.Models.Requests.SendGift;
 using FluentValidation;
 
-namespace GameServer.EventDataProcessing;
+namespace GameServer.Features.SendGift;
 
 public class SendGiftInitEventDataProcessor
 {

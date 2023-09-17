@@ -1,7 +1,7 @@
 ﻿using Common.Models.Requests.UpdateResources;
 using FluentValidation;
 
-namespace GameServer.EventDataProcessing;
+namespace GameServer.Features.UpdateResource;
 
 public class UpdateResourceInitEventDataValidator : AbstractValidator<object?>
 {

@@ -1,7 +1,7 @@
 ﻿using Common.Models.Requests.Login;
 using FluentValidation;
 
-namespace GameServer.EventDataProcessing;
+namespace GameServer.Features.Login;
 
 public class LoginInitEventDataValidator : AbstractValidator<object?>
 {

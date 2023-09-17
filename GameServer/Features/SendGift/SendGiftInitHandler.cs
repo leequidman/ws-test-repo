@@ -1,19 +1,14 @@
 ﻿using System.Net.WebSockets;
-using System.Security.AccessControl;
 using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.GiftReceived;
 using Common.Models.Requests.SendGift;
-using Common.Models.Requests.UpdateResources;
 using Common.Transport;
-using GameServer.EventDataProcessing;
 using GameServer.Services;
-using Microsoft.AspNetCore.Mvc.Diagnostics;
-using Serilog.Events;
 using ILogger = Serilog.ILogger;
 
-namespace GameServer.Handlers;
+namespace GameServer.Features.SendGift;
 
 public class SendGiftInitHandler : IEventHandler
 {
@@ -21,7 +16,7 @@ public class SendGiftInitHandler : IEventHandler
     private readonly IPlayersService _playersService;
     private readonly IWebSocketHandler _webSocketHandler;
     private readonly IConnectionService _connectionService;
-    private readonly ILogger _logger;       
+    private readonly ILogger _logger;
 
     public SendGiftInitHandler(IPlayersService playersService, IWebSocketHandler webSocketHandler, IConnectionService connectionService, ILogger logger)
     {
@@ -38,7 +33,7 @@ public class SendGiftInitHandler : IEventHandler
         var data = _dataProcessor.PrepareEventData(eventData);
 
         IEvent resultEvent;
-        
+
         var sender = await _playersService.FindPlayer(data.SenderId);
         if (sender is null)
         {
@@ -74,16 +69,16 @@ public class SendGiftInitHandler : IEventHandler
             {
                 resultEvent = new SendGiftFailureEvent(new(
                     $"Player '{data.ReceiverId}' has too much of '{data.Resource}' ('{receiverAmount}')," +
-                    " keep this gift to yourself"));  
-                await _webSocketHandler.SendEvent(ws, resultEvent); 
+                    " keep this gift to yourself"));
+                await _webSocketHandler.SendEvent(ws, resultEvent);
                 return;
             }
         }
 
         await _playersService.TransferResources(sender, receiver, data.Resource, data.Amount);
         resultEvent = new SendGiftSuccessEvent(
-            new(data.SenderId, 
-                data.ReceiverId, 
+            new(data.SenderId,
+                data.ReceiverId,
                 data.Resource,
                 senderAmount - data.Amount,
                 receiverAmount + data.Amount));
@@ -105,7 +100,7 @@ public class SendGiftInitHandler : IEventHandler
                 _logger.Information($"Receiver '{data.ReceiverId}' is online, notifying him");
                 await _webSocketHandler.SendEvent(receiverWs, giftReceivedEvent);
             }
-        }   
+        }
 
 
     }

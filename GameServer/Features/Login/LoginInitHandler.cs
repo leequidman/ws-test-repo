@@ -4,11 +4,10 @@ using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
 using Common.Transport;
-using GameServer.EventDataProcessing;
 using GameServer.Services;
 using JetBrains.Annotations;
 
-namespace GameServer.Handlers;
+namespace GameServer.Features.Login;
 
 [UsedImplicitly]
 public class LoginInitHandler : IEventHandler
@@ -23,7 +22,7 @@ public class LoginInitHandler : IEventHandler
 
     public LoginInitHandler(
         IPlayersService playersService,
-        IConnectionService connectionService, 
+        IConnectionService connectionService,
         IWebSocketHandler webSocketHandler,
         Serilog.ILogger logger)
     {
