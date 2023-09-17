@@ -1,7 +1,7 @@
 ﻿using System.Net.WebSockets;
 using Common.Models.Requests.Abstract;
 
-namespace Common.Transport;
+namespace GameServer.Transport;
 
 public interface IWebSocketHandler
 {

@@ -1,7 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Net.WebSockets;
-using System.Text;
-using Serilog;
 using System.Text.Json;
 using Common.Models.Requests.Login;
 using Common.Models.Requests.SendGift;
@@ -17,7 +14,7 @@ namespace GameClient;
 /// </summary>
 internal class Program
 {
-    static async Task Main(string[] args)
+    static async Task Main()
     {
         while (true)
         {
@@ -78,7 +75,7 @@ internal class Program
                 throw new("Expected message was not received");
         }
 
-        var jsonObj = JsonNode.Parse(jsonString!)!.AsObject();
+        var jsonObj = JsonNode.Parse(jsonString)!.AsObject();
 
         var eventData = jsonObj[nameof(IEvent.EventData)];
 

@@ -3,8 +3,8 @@ using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.Login;
-using Common.Transport;
 using GameServer.Services;
+using GameServer.Transport;
 using JetBrains.Annotations;
 
 namespace GameServer.Features.Login;

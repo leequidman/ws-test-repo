@@ -16,7 +16,7 @@ public class BaseMessageHandler : IBaseMessageHandler
 {
     private readonly IEventHandlerProvider _eventHandlerProvider;
     private readonly IEventParserProvider _eventParserProvider;
-    private Serilog.ILogger _logger;
+    private readonly ILogger _logger;
 
     public BaseMessageHandler(IEventHandlerProvider eventHandlerProvider, IEventParserProvider eventParserProvider, ILogger logger)
     {

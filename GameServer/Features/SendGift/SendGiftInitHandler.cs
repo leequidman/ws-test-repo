@@ -4,9 +4,9 @@ using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.GiftReceived;
 using Common.Models.Requests.SendGift;
-using Common.Transport;
 using GameServer.Repositories.Models;
 using GameServer.Services;
+using GameServer.Transport;
 using ILogger = Serilog.ILogger;
 
 namespace GameServer.Features.SendGift;

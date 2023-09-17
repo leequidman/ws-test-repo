@@ -58,7 +58,7 @@ public class Client
         catch (Exception exception)
         {
             _logger.Error(exception, $"Error while connecting with deviceId '{_deviceId}'");
-            return null;
+            throw;
         }
     }
 

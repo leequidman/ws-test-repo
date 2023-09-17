@@ -3,8 +3,8 @@ using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.UpdateResources;
-using Common.Transport;
 using GameServer.Services;
+using GameServer.Transport;
 using JetBrains.Annotations;
 using ILogger = Serilog.ILogger;
 

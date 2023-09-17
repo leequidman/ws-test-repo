@@ -23,7 +23,7 @@ public class PlayersService : IPlayersService
     public async Task<Guid> GetOrAddPlayerId(Guid deviceId)
     {
         if (await _playersRepository.TryGetPlayer(deviceId, out var player))
-            return player.PlayerId;
+            return player!.PlayerId;
 
         return await _playersRepository.AddPlayer(deviceId);        
     }

@@ -15,7 +15,7 @@ public class PlayersRepository : IPlayersRepository
         _logger = logger;
     }
 
-    public Task<bool> TryGetPlayer(Guid deviceId, out Player player)
+    public Task<bool> TryGetPlayer(Guid deviceId, out Player? player)
     {
         return Task.FromResult(Players.TryGetValue(deviceId, out player));
     }
@@ -50,8 +50,8 @@ public class PlayersRepository : IPlayersRepository
 
     public Task TransferResources(Player sender, Player receiver, ResourceType resource, int amount)
     {
-        sender.Resources.AddOrUpdate(resource, 0, (key, oldValue) => oldValue - amount);
-        receiver.Resources.AddOrUpdate(resource, amount, (key, oldValue) => oldValue + amount);
+        sender.Resources.AddOrUpdate(resource, 0, (_, oldValue) => oldValue - amount);
+        receiver.Resources.AddOrUpdate(resource, amount, (_, oldValue) => oldValue + amount);
         return Task.CompletedTask;
     }
 

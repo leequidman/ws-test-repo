@@ -14,7 +14,7 @@ public class UpdateResourceInitEventParser : IEventParser
 
     public IEventData Parse(string jsonString)
     {
-        var jsonObj = JsonNode.Parse(jsonString!)!.AsObject();
+        var jsonObj = JsonNode.Parse(jsonString)!.AsObject();
 
 
         var eventData = jsonObj[nameof(IEvent.EventData)];

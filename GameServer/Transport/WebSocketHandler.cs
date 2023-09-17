@@ -2,7 +2,6 @@
 using System.Text.Json;
 using Common.EventHandling;
 using Common.Models.Requests.Abstract;
-using Common.Transport;
 using GameServer.Services;
 
 namespace GameServer.Transport;
