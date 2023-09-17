@@ -27,7 +27,7 @@ public class Client
     {
         var request = new LoginInitEvent(new(_deviceId));
         var bytes = JsonSerializer.SerializeToUtf8Bytes(request);
-        await _ws.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
+        await _ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
     }
 
     public async Task SendGift(Guid senderId, Guid receiverId, ResourceType resourceType, int amount)
@@ -50,7 +50,7 @@ public class Client
 
         try
         {
-            await _ws.ConnectAsync(new Uri($"ws://localhost:13371/ws"), CancellationToken.None);
+            await _ws.ConnectAsync(new($"ws://localhost:13371/ws"), CancellationToken.None);
             _logger.Information($"Connected with deviceId '{_deviceId}'");
 
             return ReceiveMessages();
@@ -74,7 +74,7 @@ public class Client
         {
             try
             {
-                var result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                var result = await _ws.ReceiveAsync(new(buffer), CancellationToken.None);
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
