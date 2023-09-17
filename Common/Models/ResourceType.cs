@@ -1,4 +1,4 @@
-﻿namespace Common.Models.UpdateResources;
+﻿namespace Common.Models;
 
 public enum ResourceType
 {

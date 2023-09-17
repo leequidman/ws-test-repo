@@ -1,5 +1,5 @@
 ﻿using System.Collections.Concurrent;
-using Common.Models.UpdateResources;
+using Common.Models;
 
 namespace GameServer.Repositories.Models;
 

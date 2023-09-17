@@ -1,7 +1,6 @@
 ﻿using System.Text.Json.Nodes;
 using Common.Models;
 using Common.Models.SendGift;
-using Common.Models.UpdateResources;
 using GameServer.Transport;
 using JetBrains.Annotations;
 

@@ -1,4 +1,4 @@
-﻿using Common.Models.UpdateResources;
+﻿using Common.Models;
 using GameServer.Repositories.Models;
 
 namespace GameServer.Repositories;

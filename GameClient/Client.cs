@@ -2,6 +2,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Common.Models;
 using Common.Models.Login;
 using Common.Models.SendGift;
 using Common.Models.UpdateResources;
