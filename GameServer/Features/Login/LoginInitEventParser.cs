@@ -13,11 +13,10 @@ public class LoginInitEventParser : IEventParser
     public IEventData Parse(string jsonString)
     {
         var jsonObj = JsonNode.Parse(jsonString)?.AsObject();
-
         var node = jsonObj![nameof(IEvent.EventData)]?[nameof(LoginInitEventData.DeviceId)];
         if (node == null)
-            throw new ArgumentException($"Invalid data format for EventType '{EventType}'." +
-                                        $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(jsonString, "", EventType));
         return new LoginInitEventData(Guid.Parse(node.ToString()));
     }
+    
 }

@@ -29,7 +29,6 @@ public class BaseMessageHandler : IBaseMessageHandler
         var eventType = GetEventType(message);
 
         var parser = _eventParserProvider.GetParser(eventType);
-
         var eventData = parser.Parse(message);
 
         var eventHandlers = _eventHandlerProvider.GetHandlers(eventType);

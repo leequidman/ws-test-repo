@@ -3,62 +3,65 @@ using Common.EventHandling;
 using Common.Models;
 using Common.Models.Requests.Abstract;
 using Common.Models.Requests.UpdateResources;
+using JetBrains.Annotations;
 
 namespace GameServer.Features.UpdateResource;
 
+[UsedImplicitly]
 public class UpdateResourceInitEventParser : IEventParser
 {
     public EventType EventType => EventType.UpdateResourceInit;
-    public IEventData Parse(string? jsonString)
+
+    public IEventData Parse(string jsonString)
     {
         var jsonObj = JsonNode.Parse(jsonString!)!.AsObject();
 
+
         var eventData = jsonObj[nameof(IEvent.EventData)];
         if (eventData == null)
-            throw new ArgumentException($"Invalid data format for EventType '{EventType}'." +
-                                        $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(jsonString, "", EventType));
 
         var playerIdNode = eventData[nameof(UpdateResourceInitEventData.PlayerId)];
         if (playerIdNode == null)
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.PlayerId)} was null." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.PlayerId)} was null.",
+                EventType));
 
         var playerIdString = playerIdNode.ToString();
         if (!Guid.TryParse(playerIdString, out var playerId))
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.PlayerId)} must be of type Guid." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.PlayerId)} must be of type Guid.",
+                EventType));
 
         var resourceTypeNode = eventData[nameof(UpdateResourceInitEventData.ResourceType)];
         if (resourceTypeNode == null)
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.ResourceType)} was null." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.ResourceType)} was null.",
+                EventType));
 
         var resourceTypeString = resourceTypeNode.ToString();
         if (!Enum.TryParse<ResourceType>(resourceTypeString, out var resourceType))
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.ResourceType)} must be of type {nameof(ResourceType)}." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.ResourceType)} must be of type {nameof(ResourceType)}.",
+                EventType));
 
         var amountNode = eventData[nameof(UpdateResourceInitEventData.Amount)];
         if (amountNode == null)
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.Amount)} was null." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.Amount)} was null.",
+                EventType));
 
         var amountString = amountNode.ToString();
         if (!int.TryParse(amountString, out var amount))
-            throw new ArgumentException(
-                $"Invalid data format for EventType '{EventType}'. " +
-                $"{nameof(UpdateResourceInitEventData.Amount)} must be of type int." +
-                $"{Environment.NewLine}{jsonString}: {jsonString}");
+            throw new ArgumentException(IEventParser.BuildErrorMessage(
+                jsonString,
+                $"{nameof(UpdateResourceInitEventData.Amount)} must be of type int.",
+                EventType));
 
         return new UpdateResourceInitEventData(playerId, resourceType, amount);
     }
