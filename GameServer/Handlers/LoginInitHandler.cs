@@ -10,15 +10,15 @@ using JetBrains.Annotations;
 namespace GameServer.Handlers
 {
     [UsedImplicitly]
-    public class InitLoginHandler : IEventHandler
+    public class LoginInitHandler : IEventHandler
     {
         private readonly IPlayersService _playersService;
         private readonly IConnectionService _connectionService;
         private readonly IWebSocketHandler _webSocketHandler;
 
-        public EventType EventType => EventType.InitLogin;
+        public EventType EventType => EventType.LoginInit;
 
-        public InitLoginHandler(IPlayersService playersService, IConnectionService connectionService, IWebSocketHandler webSocketHandler)
+        public LoginInitHandler(IPlayersService playersService, IConnectionService connectionService, IWebSocketHandler webSocketHandler)
         {
             _playersService = playersService;
             _connectionService = connectionService;
@@ -30,8 +30,8 @@ namespace GameServer.Handlers
             if (eventData is null)
                 throw new ArgumentException($"Expected {nameof(eventData)} to be non-null");
 
-            if (eventData is not InitLoginEventData initLoginEventData)
-                throw new ArgumentException($"Expected {nameof(InitLoginEventData)} but got {eventData.GetType().Name}");
+            if (eventData is not LoginInitEventData initLoginEventData)
+                throw new ArgumentException($"Expected {nameof(LoginInitEventData)} but got {eventData.GetType().Name}");
 
             if (initLoginEventData == null)
                 throw new ArgumentException($"Expected {nameof(initLoginEventData)} to be non-null");

@@ -2,14 +2,15 @@
 
 public enum EventType
 {
-    InitLogin,
+    LoginInit,
     LoginSuccessful,
     LoginFailed,
 
-    InitUpdateResource,     
+    UpdateResourceInit,     
     UpdateResourceSuccess,
     UpdateResourceFailure,
 
-
-    SendGift
+    SendGiftInit,
+    SendGiftSuccess,
+    SendGiftFailure
 }

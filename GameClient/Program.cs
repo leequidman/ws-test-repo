@@ -63,7 +63,7 @@ namespace GameClient
                         {
                             case "l":
                             {
-                                var loginRequest = new InitLoginEvent(new(Guid.NewGuid()));
+                                var loginRequest = new LoginInitEvent(new(Guid.NewGuid()));
 
                                 var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
@@ -71,7 +71,7 @@ namespace GameClient
                             }
                             case "ll":
                             {
-                                var loginRequest = new InitLoginEvent(new(mdi));
+                                var loginRequest = new LoginInitEvent(new(mdi));
 
                                 var bytes = JsonSerializer.SerializeToUtf8Bytes(loginRequest);
                                 await ws.SendAsync(new(bytes), WebSocketMessageType.Text, true, CancellationToken.None);

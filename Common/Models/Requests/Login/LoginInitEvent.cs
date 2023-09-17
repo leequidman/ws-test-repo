@@ -2,12 +2,12 @@
 
 namespace Common.Models.Requests.Login;
 
-public class InitLoginEvent : IEvent
+public class LoginInitEvent : IEvent
 {
-    public EventType EventType => EventType.InitLogin;
+    public EventType EventType => EventType.LoginInit;
     public object? EventData { get; init; }
 
-    public InitLoginEvent(InitLoginEventData eventData)
+    public LoginInitEvent(LoginInitEventData eventData)
     {
         EventData = eventData;
     }

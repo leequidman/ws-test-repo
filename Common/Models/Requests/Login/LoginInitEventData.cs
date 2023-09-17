@@ -2,4 +2,4 @@
 
 namespace Common.Models.Requests.Login;
 
-public record InitLoginEventData(Guid DeviceId) : IEventData;
+public record LoginInitEventData(Guid DeviceId) : IEventData;

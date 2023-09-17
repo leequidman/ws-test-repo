@@ -5,10 +5,12 @@ using Common.Models.Requests.Abstract;
 using Common.Models.Requests.UpdateResources;
 using Common.Transport;
 using GameServer.Services;
+using JetBrains.Annotations;
 using ILogger = Serilog.ILogger;
 
 namespace GameServer.Handlers;
 
+[UsedImplicitly]
 public class UpdateResourcesHandler : IEventHandler
 {
     private readonly IPlayersService _playersService;
@@ -22,7 +24,8 @@ public class UpdateResourcesHandler : IEventHandler
         _webSocketHandler = webSocketHandler;
     }
 
-    public EventType EventType => EventType.InitUpdateResource;
+    public EventType EventType => EventType.UpdateResourceInit;
+
     public async Task Handle(object? eventData, WebSocket ws)
     {
         if (eventData is null)

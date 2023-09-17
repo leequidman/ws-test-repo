@@ -52,14 +52,14 @@ namespace Common.EventHandling
 
             switch (type)
             {
-                case EventType.InitLogin:
-                    var node = jsonObj[nameof(IEvent.EventData)]?[nameof(InitLoginEventData.DeviceId)];
+                case EventType.LoginInit:
+                    var node = jsonObj[nameof(IEvent.EventData)]?[nameof(LoginInitEventData.DeviceId)];
                     if (node == null)
                         throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
                                                     $"{Environment.NewLine}{jsonString}: {jsonString}");
-                    return new InitLoginEvent(new(Guid.Parse(node.ToString())));
+                    return new LoginInitEvent(new(Guid.Parse(node.ToString())));
 
-                case EventType.InitUpdateResource:
+                case EventType.UpdateResourceInit:
                     var eventData = jsonObj[nameof(IEvent.EventData)];
                     if (eventData == null)
                         throw new ArgumentException($"Invalid data format for EventType '{evenTypeString}'." +
@@ -109,7 +109,7 @@ namespace Common.EventHandling
 
                     return new InitUpdateResourceEvent(new(playerId, resourceType, amount));
 
-                // case EventType.SendGift:
+                // case EventType.SendGiftInit:
                 //     break;
                 default:
                     throw new ArgumentOutOfRangeException();
