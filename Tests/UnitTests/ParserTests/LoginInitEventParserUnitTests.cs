@@ -28,14 +28,14 @@ public class LoginInitEventParserUnitTests
 
     private static IEnumerable<string> ValidJsonStrings()
     {
-        yield return "{\"EventData\":{\"DeviceId\":\"" + Guid.NewGuid() + "\"}}";
+        yield return $"{{\"EventData\":{{\"DeviceId\":\"{Guid.NewGuid()}\"}}}}";
     }
 
     private static IEnumerable<string> InvalidJsonStrings()
     {
         yield return "{\"EventData\":{}}";
         yield return "{\"EventData\":{\"ExtraField\":\"SomeValue\"}}";
-        yield return "{\"EventData\":{\"deviceID\":\"" + Guid.NewGuid() + "\"}}"; // Incorrect casing
+        yield return $"{{\"EventData\":{{\"deviceID\":\"{Guid.NewGuid()}\"}}}}"; // Incorrect casing
         yield return "{\"eventData\":{\"DeviceId\":null}}"; // Null DeviceId
         yield return "{\"eventData\":{\"DeviceId\":\"\", \"ExtraField\":\"SomeValue\"}}"; // Empty DeviceId
     }
