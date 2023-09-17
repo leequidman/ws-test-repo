@@ -1,8 +1,6 @@
 ﻿using System.Net.WebSockets;
-using Common.EventHandling;
 using Common.Models;
-using Common.Models.Requests.Abstract;
-using Common.Models.Requests.UpdateResources;
+using Common.Models.UpdateResources;
 using GameServer.Services;
 using GameServer.Transport;
 using JetBrains.Annotations;

@@ -1,8 +1,7 @@
 ﻿using System.Text.Json.Nodes;
-using Common.EventHandling;
 using Common.Models;
-using Common.Models.Requests.Abstract;
-using Common.Models.Requests.UpdateResources;
+using Common.Models.UpdateResources;
+using GameServer.Transport;
 using JetBrains.Annotations;
 
 namespace GameServer.Features.UpdateResource;

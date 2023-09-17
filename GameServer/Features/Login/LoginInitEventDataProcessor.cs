@@ -1,4 +1,4 @@
-﻿using Common.Models.Requests.Login;
+﻿using Common.Models.Login;
 using FluentValidation;
 
 namespace GameServer.Features.Login;

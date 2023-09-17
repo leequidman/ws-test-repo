@@ -1,9 +1,7 @@
 ﻿using System.Net.WebSockets;
-using Common.EventHandling;
 using Common.Models;
-using Common.Models.Requests.Abstract;
-using Common.Models.Requests.GiftReceived;
-using Common.Models.Requests.SendGift;
+using Common.Models.GiftReceived;
+using Common.Models.SendGift;
 using GameServer.Repositories.Models;
 using GameServer.Services;
 using GameServer.Transport;
@@ -48,6 +46,9 @@ public class SendGiftInitHandler : IEventHandler
         var (sender, senderAmount, receiver, receiverAmount) =
             ((Player sender, int senderAmount, Player receiver, int receiverAmount))resultData!;
 
+
+        // should implement true transactional approach here + test concurrent scenarios
+        // amounts (for both sender and receiver) can be changed between checks and actual transfer
         await _playersService.TransferResources(sender, receiver, data.Resource, data.Amount);
         resultEvent = new SendGiftSuccessEvent(
             new(data.SenderId,
@@ -65,11 +66,7 @@ public class SendGiftInitHandler : IEventHandler
             if (receiverWs != null) // mb it was closed and deleted between method calls 
             {
                 var giftReceivedEvent = new GiftReceivedEvent(
-                    new(data.SenderId,
-                        data.ReceiverId,
-                        data.Resource,
-                        data.Amount,
-                        receiverAmount + data.Amount));
+                    new(data.SenderId, data.ReceiverId, data.Resource, data.Amount, receiverAmount + data.Amount));
                 _logger.Information($"Receiver '{data.ReceiverId}' is online, notifying him");
                 await _webSocketHandler.SendEvent(receiverWs, giftReceivedEvent);
             }

@@ -1,4 +1,4 @@
-﻿using Common.Models.Requests.UpdateResources;
+﻿using Common.Models.UpdateResources;
 using GameServer.Repositories.Models;
 
 namespace GameServer.Repositories;

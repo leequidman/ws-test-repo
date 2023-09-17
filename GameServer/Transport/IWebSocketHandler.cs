@@ -1,5 +1,5 @@
 ﻿using System.Net.WebSockets;
-using Common.Models.Requests.Abstract;
+using Common.Models;
 
 namespace GameServer.Transport;
 

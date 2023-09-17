@@ -1,4 +1,4 @@
-﻿using Common.Models.Requests.UpdateResources;
+﻿using Common.Models.UpdateResources;
 using FluentValidation;
 
 namespace GameServer.Features.UpdateResource;

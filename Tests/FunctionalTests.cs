@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Common.Models.Requests.Abstract;
-using Common.Models.Requests.GiftReceived;
-using Common.Models.Requests.Login;
-using Common.Models.Requests.SendGift;
-using Common.Models.Requests.UpdateResources;
+using Common.Models;
+using Common.Models.GiftReceived;
+using Common.Models.Login;
+using Common.Models.SendGift;
+using Common.Models.UpdateResources;
 using FluentAssertions;
 using GameClient;
 using NUnit.Framework;

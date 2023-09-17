@@ -1,5 +1,4 @@
 using System.Net;
-using Common.EventHandling;
 using GameServer.Repositories;
 using GameServer.Services;
 using GameServer.Transport;

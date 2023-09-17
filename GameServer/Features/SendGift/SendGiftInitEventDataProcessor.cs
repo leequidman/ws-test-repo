@@ -1,4 +1,4 @@
-﻿using Common.Models.Requests.SendGift;
+﻿using Common.Models.SendGift;
 using FluentValidation;
 
 namespace GameServer.Features.SendGift;

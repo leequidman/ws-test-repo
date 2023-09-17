@@ -2,9 +2,9 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using Common.Models.Requests.Login;
-using Common.Models.Requests.SendGift;
-using Common.Models.Requests.UpdateResources;
+using Common.Models.Login;
+using Common.Models.SendGift;
+using Common.Models.UpdateResources;
 using Serilog;
 
 namespace GameClient;

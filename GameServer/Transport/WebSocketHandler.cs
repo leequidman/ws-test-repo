@@ -1,7 +1,6 @@
 ﻿using System.Net.WebSockets;
 using System.Text.Json;
-using Common.EventHandling;
-using Common.Models.Requests.Abstract;
+using Common.Models;
 using GameServer.Services;
 
 namespace GameServer.Transport;

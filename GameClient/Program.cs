@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using System.Text.Json;
-using Common.Models.Requests.Login;
-using Common.Models.Requests.SendGift;
-using Common.Models.Requests.UpdateResources;
-using Common.Models.Requests.GiftReceived;
-using Common.Models.Requests.Abstract;
 using System.Text.Json.Nodes;
+using Common.Models;
+using Common.Models.UpdateResources;
+using Common.Models.GiftReceived;
+using Common.Models.Login;
+using Common.Models.SendGift;
 
 namespace GameClient;
 
