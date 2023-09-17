@@ -5,7 +5,7 @@ using FluentValidation;
 using GameServer.Features.SendGift;
 using NUnit.Framework;
 
-namespace Tests.UnitTests;
+namespace Tests.UnitTests.ValidatorTests;
 
 public class SendGiftInitEventDataValidatorUnitTests
 {
@@ -37,7 +37,7 @@ public class SendGiftInitEventDataValidatorUnitTests
     {
         yield return new(Guid.Empty, Guid.NewGuid(), ResourceType.Coins, 10);
         yield return new(Guid.NewGuid(), Guid.Empty, ResourceType.Coins, 10);
-        yield return new(Guid.NewGuid(), Guid.NewGuid(), (ResourceType)4, 10); 
+        yield return new(Guid.NewGuid(), Guid.NewGuid(), (ResourceType)4, 10);
         yield return new(Guid.NewGuid(), Guid.NewGuid(), ResourceType.Coins, 0);
         yield return new(Guid.NewGuid(), Guid.NewGuid(), (ResourceType)13, 11);
         yield return new(Guid.NewGuid(), Guid.NewGuid(), ResourceType.Coins, -1);

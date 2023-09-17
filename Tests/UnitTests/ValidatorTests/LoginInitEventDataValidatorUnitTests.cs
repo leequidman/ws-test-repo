@@ -8,7 +8,7 @@ using FluentValidation;
 using GameServer.Features.Login;
 using NUnit.Framework;
 
-namespace Tests.UnitTests
+namespace Tests.UnitTests.ValidatorTests
 {
     public class LoginInitEventDataValidatorUnitTests
     {

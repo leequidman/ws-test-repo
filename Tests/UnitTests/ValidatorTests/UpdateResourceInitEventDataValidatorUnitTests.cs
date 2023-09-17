@@ -5,7 +5,7 @@ using FluentValidation;
 using GameServer.Features.UpdateResource;
 using NUnit.Framework;
 
-namespace Tests.UnitTests;
+namespace Tests.UnitTests.ValidatorTests;
 
 public class UpdateResourceInitEventDataValidatorUnitTests
 {
@@ -30,7 +30,7 @@ public class UpdateResourceInitEventDataValidatorUnitTests
         yield return new(Guid.NewGuid(), ResourceType.Coins, 10);
         yield return new(Guid.NewGuid(), ResourceType.Rolls, 5);
         yield return new(Guid.NewGuid(), ResourceType.Rolls, int.MaxValue);
-        yield return new(Guid.NewGuid(), ResourceType.Rolls, int.MaxValue-1);
+        yield return new(Guid.NewGuid(), ResourceType.Rolls, int.MaxValue - 1);
         yield return new(Guid.NewGuid(), ResourceType.Coins, 1);
     }
     private static IEnumerable<UpdateResourceInitEventData> InCorrectEventDataCases()
